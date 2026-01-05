@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/colors.dart';
-import 'presentation/login/role_selection_page.dart';
+import 'presentation/login/login_page.dart';
 
 void main() {
   runApp(const PetAdoptApp());
@@ -17,9 +17,8 @@ class PetAdoptApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: AppColors.background,
-        colorSchemeSeed: AppColors.primaryOrange,
       ),
-      home: const RoleSelectionPage(),
+      home: const LoginPage(),
     );
   }
 }

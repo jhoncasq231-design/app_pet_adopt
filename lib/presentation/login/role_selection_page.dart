@@ -6,18 +6,25 @@ import '../shelter_admin/shelter_dashboard_page.dart';
 class RoleSelectionPage extends StatelessWidget {
   const RoleSelectionPage({super.key});
 
-  @override
+   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              '¿Quién eres?',
+              '¿Quién eres?', 
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
+            const Text("Selecciona el tipo de cuenta que deseas crear",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 145, 141, 138))),
             const SizedBox(height: 30),
 
             _RoleCard(
@@ -75,25 +82,32 @@ class _RoleCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: color.withOpacity(0.15),
-                radius: 30,
-                child: Icon(icon, color: color, size: 32),
-              ),
-              const SizedBox(width: 20),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold)),
-                  Text(description),
-                ],
-              ),
-            ],
+  children: [
+    CircleAvatar(
+      backgroundColor: color.withOpacity(0.15),
+      radius: 30,
+      child: Icon(icon, color: color, size: 32),
+    ),
+    const SizedBox(width: 20),
+    Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+                fontSize: 20, fontWeight: FontWeight.bold),
           ),
-        ),
+          Text(
+            description,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    ),
+  ],
+),        ),
       ),
     );
   }
