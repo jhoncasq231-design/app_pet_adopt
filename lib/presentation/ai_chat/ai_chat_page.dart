@@ -6,24 +6,64 @@ class AiChatPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Chat IA')),
+      backgroundColor: const Color(0xFFFFF6EE),
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.orange,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text(
+              'Asistente PetAdopt',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Powered by Gemini AI',
+              style: TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Icon(Icons.smart_toy, color: Colors.orange),
+            ),
+          )
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(16),
-              children: const [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Chip(label: Text('Hola, ¿buscas una mascota?')),
+              children: [
+                _botMessage(
+                  '¡Hola! 🐾 Soy tu asistente de mascotas. ¿En qué puedo ayudarte hoy?',
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Chip(label: Text('Sí, un perro tranquilo')),
+                const SizedBox(height: 12),
+                _userMessage(
+                  'Mi perro ha estado rascándose mucho, ¿qué puede ser?',
+                ),
+                const SizedBox(height: 12),
+                _botMessage(
+                  'El rascado excesivo puede deberse a varias causas:\n\n'
+                  '🔹 Alergias (alimentarias o ambientales)\n'
+                  '🔹 Pulgas o parásitos\n'
+                  '🔹 Piel seca\n'
+                  '🔹 Dermatitis\n\n'
+                  '¿Notas algún otro síntoma?',
                 ),
               ],
             ),
           ),
+
+          // INPUT
           Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -31,20 +71,63 @@ class AiChatPage extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     decoration: InputDecoration(
-                      hintText: 'Escribe un mensaje...',
+                      hintText: 'Escribe tu pregunta...',
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20)),
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: () {},
+                const SizedBox(width: 8),
+                CircleAvatar(
+                  backgroundColor: Colors.orange,
+                  child: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.white),
+                    onPressed: () {},
+                  ),
                 )
               ],
             ),
           )
         ],
+      ),
+    );
+  }
+
+  // ================== Widgets ==================
+
+  Widget _botMessage(String text) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(text),
+      ),
+    );
+  }
+
+  Widget _userMessage(String text) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.orange,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(color: Colors.white),
+        ),
       ),
     );
   }
