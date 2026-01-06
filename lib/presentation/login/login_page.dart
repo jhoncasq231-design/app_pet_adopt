@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/colors.dart';
 import '../../data/services/auth_service.dart';
+import '../../data/services/google_auth_service.dart';
+import '../../data/services/adoption_notification_service.dart';
 import '../routes/app_routes.dart';
 import 'forgot_password_page.dart';
 
@@ -84,6 +86,57 @@ class _LoginPageState extends State<LoginPage> {
       context,
       MaterialPageRoute(builder: (context) => const ForgotPasswordPage()),
     );
+  }
+
+  void _handleGoogleSignIn() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await GoogleAuthService.signInWithGoogle();
+
+      if (!mounted) return;
+
+      if (result['success']) {
+        // Obtener el rol del usuario autenticado
+        final userRole = AuthService.getUserRole();
+
+        // Guardar token FCM para notificaciones
+        final userId = AuthService.getCurrentUserId();
+        if (userId != null) {
+          // El token FCM se guardará automáticamente en el servicio de notificaciones
+          await AdoptionNotificationService.saveFCMTokenForUser(
+            userId,
+            '', // El token se obtiene del servicio de notificaciones
+          );
+        }
+
+        // Navegar según el rol
+        if (userRole == 'adoptante') {
+          Navigator.pushReplacementNamed(context, AppRoutes.homeAdoptant);
+        } else if (userRole == 'refugio') {
+          Navigator.pushReplacementNamed(context, AppRoutes.homeShelter);
+        } else {
+          setState(() {
+            _errorMessage = 'Rol de usuario no válido';
+            _isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          _errorMessage = result['message'];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Error al iniciar sesión con Google: $e';
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -302,19 +355,9 @@ class _LoginPageState extends State<LoginPage> {
 
                   const SizedBox(height: 20),
 
-                  // GOOGLE (Placeholder - se implementará después)
+                  // GOOGLE
                   OutlinedButton.icon(
-                    onPressed: _isLoading
-                        ? null
-                        : () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Autenticación con Google próximamente',
-                                ),
-                              ),
-                            );
-                          },
+                    onPressed: _isLoading ? null : _handleGoogleSignIn,
                     icon: Icon(
                       Icons.g_mobiledata,
                       size: 28,

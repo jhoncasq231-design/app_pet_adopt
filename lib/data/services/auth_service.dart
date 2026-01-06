@@ -434,4 +434,27 @@ class AuthService {
       return false;
     }
   }
+
+  /// Guardar token FCM para notificaciones push
+  static Future<bool> saveFCMToken(String fcmToken) async {
+    try {
+      final userId = getCurrentUserId();
+      if (userId == null) {
+        print('Usuario no autenticado para guardar token FCM');
+        return false;
+      }
+
+      await _supabase.from('user_fcm_tokens').upsert({
+        'user_id': userId,
+        'fcm_token': fcmToken,
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'user_id');
+
+      print('Token FCM guardado para usuario: $userId');
+      return true;
+    } catch (e) {
+      print('Error al guardar token FCM: $e');
+      return false;
+    }
+  }
 }

@@ -201,7 +201,6 @@ class _ShelterAdoptionRequestsPageState
           final userName = userData?['nombre'] ?? 'Usuario desconocido';
           final status = (request['estado'] as String? ?? 'pendiente')
               .toLowerCase();
-          final requestDate = request['fecha_solicitud'] as String?;
 
           return Card(
             margin: const EdgeInsets.only(bottom: 12),

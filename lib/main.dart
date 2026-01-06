@@ -9,11 +9,15 @@ import 'presentation/shelter_admin/home_container_shelter_page.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Inicializar Supabase
   await Supabase.initialize(
     url: 'https://qygsuhhtijuzobuwfaxt.supabase.co',
     anonKey:
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5Z3N1aGh0aWp1em9idXdmYXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NDM1NTYsImV4cCI6MjA4MzIxOTU1Nn0.Lfv4sTOWkhwVIy8IddOIy2jbPtLAe5w915MlxKDkvlE',
   );
+
+  // Firebase y notificaciones desactivados por ahora
+  // Se habilitarán cuando tengas Firebase configurado
 
   runApp(const PetAdoptApp());
 }
@@ -26,10 +30,7 @@ class PetAdoptApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Pet Adopt',
-      theme: ThemeData(
-        primarySwatch: Colors.teal,
-        useMaterial3: true,
-      ),
+      theme: ThemeData(primarySwatch: Colors.teal, useMaterial3: true),
       home: const _InitialRoutePage(),
       routes: AppRoutes.routes,
     );
@@ -83,9 +84,7 @@ class _InitialRoutePageState extends State<_InitialRoutePage> {
           );
         } else if (userRole == 'refugio') {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const HomeContainerShelterPage(),
-            ),
+            MaterialPageRoute(builder: (_) => const HomeContainerShelterPage()),
           );
         } else {
           Navigator.of(context).pushReplacement(
@@ -93,14 +92,14 @@ class _InitialRoutePageState extends State<_InitialRoutePage> {
           );
         }
       } else {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginPage()),
-        );
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginPage()));
       }
     } catch (e) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginPage()));
     }
   }
 
@@ -126,11 +125,7 @@ class _InitialRoutePageState extends State<_InitialRoutePage> {
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.pets,
-                size: 60,
-                color: Colors.teal,
-              ),
+              child: const Icon(Icons.pets, size: 60, color: Colors.teal),
             ),
             const SizedBox(height: 30),
             const Text(
@@ -144,10 +139,7 @@ class _InitialRoutePageState extends State<_InitialRoutePage> {
             const SizedBox(height: 10),
             const Text(
               'Encuentra tu compañero perfecto',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white70,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.white70),
             ),
             const SizedBox(height: 40),
             const CircularProgressIndicator(
