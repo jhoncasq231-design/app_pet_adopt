@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'shelter_dashboard_page.dart';
 import '../adoption_requests/adoption_requests_page.dart';
+import '../profile/profile_page.dart';
 
 class HomeContainerShelterPage extends StatefulWidget {
   const HomeContainerShelterPage({super.key});
@@ -11,13 +12,13 @@ class HomeContainerShelterPage extends StatefulWidget {
       _HomeContainerShelterPageState();
 }
 
-class _HomeContainerShelterPageState
-    extends State<HomeContainerShelterPage> {
+class _HomeContainerShelterPageState extends State<HomeContainerShelterPage> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = const [
     ShelterDashboardPage(),
     AdoptionRequestsPage(),
+    ProfilePage(),
   ];
 
   @override
@@ -31,12 +32,16 @@ class _HomeContainerShelterPageState
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Panel',
+            icon: Icon(Icons.home_outlined),
+            label: 'Inicio',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.assignment),
             label: 'Solicitudes',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Perfil',
           ),
         ],
       ),
