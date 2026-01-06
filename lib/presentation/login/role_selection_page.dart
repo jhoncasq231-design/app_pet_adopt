@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../core/colors.dart';
-import '../home/home_adoptant_page.dart';
-import '../shelter_admin/shelter_dashboard_page.dart';
+
+// ✅ IMPORTA LOS CONTENEDORES (CON TABS)
+import '../home/home_container_adoptant_page.dart';
+import '../shelter_admin/home_container_shelter_page.dart';
 
 class RoleSelectionPage extends StatelessWidget {
   const RoleSelectionPage({super.key});
 
-   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -20,35 +22,52 @@ class RoleSelectionPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              '¿Quién eres?', 
+              '¿Quién eres?',
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
-            const Text("Selecciona el tipo de cuenta que deseas crear",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 145, 141, 138))),
+            const SizedBox(height: 8),
+            const Text(
+              'Selecciona el tipo de cuenta que deseas crear',
+              style: TextStyle(
+                fontSize: 16,
+                color: Color.fromARGB(255, 145, 141, 138),
+              ),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 30),
 
+            // 🐾 ADOPTANTE
             _RoleCard(
               title: 'Adoptante',
               description: 'Encuentra a tu mascota ideal',
-              icon: Icons.home,
+              icon: Icons.home_outlined,
               color: AppColors.primaryOrange,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const HomeAdoptantPage()),
-              ),
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const HomeContainerAdoptantPage(),
+                  ),
+                );
+              },
             ),
 
             const SizedBox(height: 20),
 
+            // 🏥 REFUGIO
             _RoleCard(
               title: 'Refugio',
               description: 'Gestiona mascotas y solicitudes',
-              icon: Icons.local_hospital,
+              icon: Icons.local_hospital_outlined,
               color: AppColors.primaryTeal,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ShelterDashboardPage()),
-              ),
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const HomeContainerShelterPage(),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -57,6 +76,9 @@ class RoleSelectionPage extends StatelessWidget {
   }
 }
 
+///
+/// 🔹 CARD DE SELECCIÓN DE ROL
+///
 class _RoleCard extends StatelessWidget {
   final String title;
   final String description;
@@ -78,36 +100,41 @@ class _RoleCard extends StatelessWidget {
       onTap: onTap,
       child: Card(
         elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Row(
-  children: [
-    CircleAvatar(
-      backgroundColor: color.withOpacity(0.15),
-      radius: 30,
-      child: Icon(icon, color: color, size: 32),
-    ),
-    const SizedBox(width: 20),
-    Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-                fontSize: 20, fontWeight: FontWeight.bold),
+            children: [
+              CircleAvatar(
+                backgroundColor: color.withOpacity(0.15),
+                radius: 30,
+                child: Icon(icon, color: color, size: 32),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          Text(
-            description,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    ),
-  ],
-),        ),
+        ),
       ),
     );
   }

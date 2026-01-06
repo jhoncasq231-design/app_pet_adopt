@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/colors.dart';
-import 'role_selection_page.dart';
+import '../routes/app_routes.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -26,11 +26,7 @@ class LoginPage extends StatelessWidget {
               ),
             ),
             child: const Center(
-              child: Icon(
-                Icons.pets,
-                color: Colors.white,
-                size: 70,
-              ),
+              child: Icon(Icons.pets, color: Colors.white, size: 70),
             ),
           ),
 
@@ -44,8 +40,7 @@ class LoginPage extends StatelessWidget {
                 children: [
                   const Text(
                     '¡Bienvenido!',
-                    style: TextStyle(
-                        fontSize: 28, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 5),
                   const Text('Inicia sesión para continuar'),
@@ -58,7 +53,8 @@ class LoginPage extends StatelessWidget {
                     decoration: InputDecoration(
                       hintText: 'tu@email.com',
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16)),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                   ),
 
@@ -71,7 +67,8 @@ class LoginPage extends StatelessWidget {
                     decoration: InputDecoration(
                       hintText: '••••••••',
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16)),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                   ),
 
@@ -95,7 +92,8 @@ class LoginPage extends StatelessWidget {
                         backgroundColor: AppColors.primaryOrange,
                         padding: const EdgeInsets.all(16),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20)),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
                       ),
                       onPressed: () {
                         // más adelante login real
@@ -121,7 +119,8 @@ class LoginPage extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20)),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                     ),
                   ),
 
@@ -134,17 +133,14 @@ class LoginPage extends StatelessWidget {
                       const Text('¿No tienes cuenta?'),
                       TextButton(
                         onPressed: () {
-                          Navigator.push(
+                          Navigator.pushReplacementNamed(
                             context,
-                            MaterialPageRoute(
-                              builder: (_) => const RoleSelectionPage(),
-                            ),
+                            AppRoutes.home,
                           );
                         },
                         child: Text(
                           'Regístrate',
-                          style:
-                              TextStyle(color: AppColors.primaryOrange),
+                          style: TextStyle(color: AppColors.primaryOrange),
                         ),
                       ),
                     ],

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'core/colors.dart';
-import 'presentation/login/login_page.dart';
+import 'presentation/routes/app_routes.dart';
 
 void main() {
   runApp(const PetAdoptApp());
@@ -13,12 +12,8 @@ class PetAdoptApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'PetAdopt',
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: AppColors.background,
-      ),
-      home: const LoginPage(),
+      initialRoute: AppRoutes.login,
+      routes: AppRoutes.routes,
     );
   }
 }

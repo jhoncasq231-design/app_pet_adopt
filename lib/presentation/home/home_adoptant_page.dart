@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../core/colors.dart';
 import '../../data/models/pet_model.dart';
 import '../pet_detail/pet_detail_page.dart';
-import '../ai_chat/ai_chat_page.dart';
 
 class HomeAdoptantPage extends StatefulWidget {
   const HomeAdoptantPage({super.key});
@@ -12,7 +11,6 @@ class HomeAdoptantPage extends StatefulWidget {
 }
 
 class _HomeAdoptantPageState extends State<HomeAdoptantPage> {
-  int _selectedTab = 0;
   int _selectedCategory = 0;
 
   final List<PetModel> pets = [
@@ -78,33 +76,9 @@ class _HomeAdoptantPageState extends State<HomeAdoptantPage> {
         ),
         actions: [
           IconButton(
-  icon: const Icon(Icons.chat_bubble_outline, color: Colors.black),
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const AiChatPage(),
-      ),
-    );
-  },
-),
-        ],
-      ),
-
-      // ================= BOTTOM NAV =================
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedTab,
-        selectedItemColor: AppColors.primaryOrange,
-        unselectedItemColor: Colors.grey,
-        onTap: (index) {
-          setState(() => _selectedTab = index);
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Mapa'),
-          BottomNavigationBarItem(icon: Icon(Icons.smart_toy), label: 'Chat IA'),
-          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Solicitudes'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
+            icon: const Icon(Icons.notifications_none, color: Colors.black),
+            onPressed: () {},
+          ),
         ],
       ),
 
@@ -114,7 +88,6 @@ class _HomeAdoptantPageState extends State<HomeAdoptantPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             // 🔍 SEARCH
             TextField(
               decoration: InputDecoration(
@@ -194,7 +167,6 @@ class _HomeAdoptantPageState extends State<HomeAdoptantPage> {
   }
 }
 
-// ================= CATEGORY CHIP =================
 class _CategoryChip extends StatelessWidget {
   final String label;
   final bool selected;
@@ -211,8 +183,7 @@ class _CategoryChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Chip(
-        backgroundColor:
-            selected ? AppColors.primaryOrange : Colors.white,
+        backgroundColor: selected ? AppColors.primaryOrange : Colors.white,
         label: Text(
           label,
           style: TextStyle(
@@ -225,7 +196,6 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-// ================= PET CARD =================
 class _PetCard extends StatelessWidget {
   final String name;
   final String breed;
@@ -253,9 +223,7 @@ class _PetCard extends StatelessWidget {
                   top: Radius.circular(20),
                 ),
               ),
-              child: const Center(
-                child: Icon(Icons.pets, size: 60),
-              ),
+              child: const Center(child: Icon(Icons.pets, size: 60)),
             ),
           ),
           Padding(
@@ -273,10 +241,8 @@ class _PetCard extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Icon(
-                      Icons.favorite_border,
-                      color: AppColors.primaryOrange,
-                    ),
+                    Icon(Icons.favorite_border,
+                        color: AppColors.primaryOrange),
                   ],
                 ),
                 const SizedBox(height: 4),

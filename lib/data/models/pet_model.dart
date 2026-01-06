@@ -14,4 +14,15 @@ class PetModel {
     required this.size,
     required this.distance,
   });
+
+  factory PetModel.empty() {
+    return PetModel(
+      name: '',
+      breed: '',
+      age: '',
+      sex: '',
+      size: '',
+      distance: '',
+    );
+  }
 }
