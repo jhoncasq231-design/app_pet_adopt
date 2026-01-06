@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/colors.dart';
 import '../../data/services/auth_service.dart';
 import '../routes/app_routes.dart';
+import 'forgot_password_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -50,7 +51,7 @@ class _LoginPageState extends State<LoginPage> {
       if (result['success']) {
         // Login exitoso, obtener el rol
         final userRole = AuthService.getUserRole();
-        
+
         // Navegar según el rol
         if (userRole == 'adoptante') {
           Navigator.pushReplacementNamed(context, AppRoutes.homeAdoptant);
@@ -78,56 +79,10 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _handleForgotPassword() async {
-    final email = _emailController.text.trim();
-
-    if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor ingresa tu email'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // Mostrar diálogo de confirmación
-    final shouldSend = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Recuperar contraseña'),
-        content: Text('¿Enviar email de recuperación a $email?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryOrange,
-            ),
-            child: const Text('Enviar'),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldSend != true) return;
-
-    setState(() => _isLoading = true);
-
-    final result = await AuthService.resetPassword(email: email);
-
-    if (!mounted) return;
-
-    setState(() => _isLoading = false);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(result['message']),
-        backgroundColor: result['success'] ? Colors.green : Colors.red,
-      ),
+  void _handleForgotPassword() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ForgotPasswordPage()),
     );
   }
 
@@ -204,10 +159,7 @@ class _LoginPageState extends State<LoginPage> {
                   // EMAIL
                   const Text(
                     'EMAIL',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
                   ),
                   const SizedBox(height: 6),
                   TextField(
@@ -238,10 +190,7 @@ class _LoginPageState extends State<LoginPage> {
                   // CONTRASEÑA
                   const Text(
                     'CONTRASEÑA',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
                   ),
                   const SizedBox(height: 6),
                   TextField(

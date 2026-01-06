@@ -4,6 +4,7 @@ import '../../data/models/pet_model.dart';
 import '../login/login_page.dart';
 import '../login/registro_page.dart';
 import '../login/role_selection_page.dart';
+import '../login/forgot_password_page.dart';
 import '../home/home_adoptant_page.dart';
 import '../home/home_container_adoptant_page.dart';
 import '../shelter_admin/home_container_shelter_page.dart';
@@ -17,6 +18,7 @@ class AppRoutes {
   static const login = '/login';
   static const registro = '/registro';
   static const roleSelection = '/roles';
+  static const forgotPassword = '/forgot-password';
   static const homeAdoptant = '/home-adoptant';
   static const homeShelter = '/home-shelter';
   static const home = '/home';
@@ -29,6 +31,7 @@ class AppRoutes {
     login: (_) => const LoginPage(),
     registro: (_) => const RegistroPage(),
     roleSelection: (_) => const RoleSelectionPage(),
+    forgotPassword: (_) => const ForgotPasswordPage(),
     homeAdoptant: (_) => const HomeContainerAdoptantPage(),
     homeShelter: (_) => const HomeContainerShelterPage(),
     home: (_) => const HomeAdoptantPage(),
