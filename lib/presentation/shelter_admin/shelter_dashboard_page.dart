@@ -1,181 +1,242 @@
 import 'package:flutter/material.dart';
 import '../../core/colors.dart';
 import '../../data/models/pet_model.dart';
+import '../../data/services/pet_service.dart';
+import '../../data/services/auth_service.dart';
 import 'new_pet_form_page.dart';
 
-class ShelterDashboardPage extends StatelessWidget {
+class ShelterDashboardPage extends StatefulWidget {
   const ShelterDashboardPage({super.key});
 
-  // Mock data de mascotas del refugio
-  static final List<PetModel> shelterPets = [
-    PetModel(
-      name: 'Luna',
-      breed: 'Siamés',
-      age: '2',
-      sex: 'Hembra',
-      size: 'Pequeño',
-      distance: '0',
-    ),
-    PetModel(
-      name: 'Rocky',
-      breed: 'Golden Retriever',
-      age: '3',
-      sex: 'Macho',
-      size: 'Grande',
-      distance: '0',
-    ),
-  ];
+  @override
+  State<ShelterDashboardPage> createState() => _ShelterDashboardPageState();
+}
 
-  static final List<Map<String, String>> recentRequests = [
-    {'petName': 'Luna', 'userName': 'Juan Pérez', 'status': 'pending'},
-    {'petName': 'Rocky', 'userName': 'María García', 'status': 'pending'},
-  ];
+class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
+  final _petService = PetService();
+  List<PetModel> shelterPets = [];
+  String shelterName = 'Mi Refugio';
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadShelterData();
+  }
+
+  Future<void> _loadShelterData() async {
+    try {
+      final shelterId = await AuthService.getShelterIdForCurrentUser();
+      if (shelterId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: No se pudo obtener el ID del refugio'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final profile = await AuthService.getUserProfile();
+      if (profile != null) {
+        setState(() {
+          shelterName = profile['nombre'] ?? 'Mi Refugio';
+        });
+      }
+
+      final pets = await _petService.getPetsByRefugioId(shelterId);
+      setState(() {
+        shelterPets = pets;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error al cargar datos del refugio: $e');
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar datos: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _refreshData() {
+    setState(() {
+      _isLoading = true;
+    });
+    _loadShelterData();
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primaryTeal),
+        ),
+      );
+    }
+
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // HEADER TEAL
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 40, 20, 30),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primaryTeal,
-                    AppColors.primaryTeal.withOpacity(0.8),
+      body: RefreshIndicator(
+        onRefresh: () async => _refreshData(),
+        color: AppColors.primaryTeal,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 40, 20, 30),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primaryTeal,
+                      AppColors.primaryTeal.withOpacity(0.8),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              shelterName,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Panel de administración',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white.withOpacity(0.8),
+                              ),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.settings, color: Colors.white),
+                          onPressed: () {},
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _StatCard(
+                            value: shelterPets.length.toString(),
+                            label: 'Mascotas',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _StatCard(
+                            value: shelterPets
+                                .where((p) => p.estado == 'disponible')
+                                .length
+                                .toString(),
+                            label: 'Disponibles',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _StatCard(
+                            value: shelterPets
+                                .where((p) => p.estado == 'adoptado')
+                                .length
+                                .toString(),
+                            label: 'Adoptadas',
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Refugio Patitas Felices',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Panel de administración',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white.withOpacity(0.8),
-                            ),
-                          ),
-                        ],
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Mis Mascotas',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.settings, color: Colors.white),
-                        onPressed: () {},
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  // ESTADÍSTICAS
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatCard(value: '15', label: 'Mascotas'),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatCard(value: '8', label: 'Pendientes'),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatCard(value: '23', label: 'Adoptadas'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            // SOLICITUDES RECIENTES
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Solicitudes Recientes',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  TextButton(
-                    onPressed: () {},
-                    child: Text(
-                      'Ver todas',
-                      style: TextStyle(color: AppColors.primaryTeal),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: recentRequests
-                    .map((request) => _RequestCard(request: request))
-                    .toList(),
-              ),
-            ),
-            const SizedBox(height: 24),
-            // MIS MASCOTAS
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Mis Mascotas',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const NewPetFormPage(),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const NewPetFormPage(),
+                          ),
+                        );
+                        if (result == true) {
+                          _refreshData();
+                        }
+                      },
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Agregar'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryTeal,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Agregar'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryTeal,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
                       ),
                     ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (shelterPets.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Center(
+                    child: Text(
+                      'No hay mascotas registradas aún',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: shelterPets.map((pet) => _PetItem(pet: pet)).toList(),
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: shelterPets
+                        .map(
+                          (pet) => _PetItem(
+                            pet: pet,
+                            onDelete: () => _refreshData(),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );
@@ -220,71 +281,11 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _RequestCard extends StatelessWidget {
-  final Map<String, String> request;
-
-  const _RequestCard({required this.request});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.amber.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.amber.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.pets, color: Colors.amber),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Solicitud para ${request['petName']}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                Text(
-                  'De: ${request['userName']}',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.check_circle, color: Colors.teal),
-            onPressed: () {},
-            iconSize: 20,
-          ),
-          IconButton(
-            icon: const Icon(Icons.cancel, color: Colors.red),
-            onPressed: () {},
-            iconSize: 20,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _PetItem extends StatelessWidget {
   final PetModel pet;
+  final VoidCallback? onDelete;
 
-  const _PetItem({required this.pet});
+  const _PetItem({required this.pet, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -305,7 +306,17 @@ class _PetItem extends StatelessWidget {
               color: AppColors.primaryTeal.withOpacity(0.2),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(Icons.pets, color: AppColors.primaryTeal),
+            child: pet.fotoPrincipal != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      pet.fotoPrincipal!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          Icon(Icons.pets, color: AppColors.primaryTeal),
+                    ),
+                  )
+                : Icon(Icons.pets, color: AppColors.primaryTeal),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -318,10 +329,23 @@ class _PetItem extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  '${pet.breed} - ${pet.size}',
+                  '${pet.especie}${pet.raza != null ? ' - ${pet.raza}' : ''}',
                   style: TextStyle(fontSize: 12, color: AppColors.primaryTeal),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  'Estado: ${pet.estado}',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: pet.estado == 'disponible'
+                        ? Colors.green
+                        : Colors.orange,
+                  ),
                 ),
               ],
             ),
@@ -338,7 +362,9 @@ class _PetItem extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.delete, size: 20),
-            onPressed: () {},
+            onPressed: () {
+              onDelete?.call();
+            },
             color: Colors.red,
           ),
         ],

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../core/colors.dart';
+import '../../data/services/pet_service.dart';
+import '../../data/services/auth_service.dart';
 
 class NewPetFormPage extends StatefulWidget {
   const NewPetFormPage({super.key});
@@ -13,12 +17,19 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
   final TextEditingController _raceController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _healthNotesController = TextEditingController();
-  
+  final TextEditingController _ageController = TextEditingController();
+
+  final _petService = PetService();
+  final _imagePicker = ImagePicker();
+
   String _selectedSpecies = 'Perro';
+  String _selectedSex = 'No especificado';
+  String _selectedSize = 'Mediano';
   int _mainPhotoIndex = -1;
-  final List<String> _photos = [];
+  List<File> _photoFiles = [];
   final int _maxPhotos = 5;
-  
+  bool _isLoading = false;
+
   // Estados de salud
   bool _isVaccinated = false;
   bool _isDewormed = false;
@@ -32,23 +43,87 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
     _raceController.dispose();
     _descriptionController.dispose();
     _healthNotesController.dispose();
+    _ageController.dispose();
     super.dispose();
   }
 
-  void _addPhoto() {
-    // TODO: Implementar selección de fotos
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Funcionalidad de cámara/galería próximamente'),
-      ),
+  Future<void> _addPhoto() async {
+    if (_photoFiles.length >= _maxPhotos) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Máximo $_maxPhotos fotos permitidas'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Mostrar diálogo para seleccionar fuente de foto
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Seleccionar foto'),
+          content: const Text('¿De dónde deseas obtener la foto?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _pickPhoto(ImageSource.camera);
+              },
+              child: const Text('Cámara'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _pickPhoto(ImageSource.gallery);
+              },
+              child: const Text('Galería'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+          ],
+        );
+      },
     );
+  }
+
+  Future<void> _pickPhoto(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 80,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _photoFiles.add(File(pickedFile.path));
+          if (_mainPhotoIndex == -1) {
+            _mainPhotoIndex = 0;
+          }
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al seleccionar foto: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _removePhoto(int index) {
     setState(() {
-      _photos.removeAt(index);
+      _photoFiles.removeAt(index);
       if (_mainPhotoIndex == index) {
-        _mainPhotoIndex = -1;
+        _mainPhotoIndex = _photoFiles.isNotEmpty ? 0 : -1;
+      } else if (_mainPhotoIndex > index) {
+        _mainPhotoIndex--;
       }
     });
   }
@@ -57,6 +132,112 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
     setState(() {
       _mainPhotoIndex = index;
     });
+  }
+
+  Future<void> _handlePublish() async {
+    // Validaciones
+    if (_photoFiles.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor agrega al menos una foto'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor ingresa el nombre de la mascota'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_descriptionController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor agrega una descripción'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Obtener ID del refugio
+      final shelterIdResult = await AuthService.getShelterIdForCurrentUser();
+      if (shelterIdResult == null || shelterIdResult.isEmpty) {
+        throw 'No se pudo obtener el ID del refugio. Asegúrate de estar registrado como refugio.';
+      }
+
+      // Parsear edad
+      int? edadMeses;
+      if (_ageController.text.isNotEmpty) {
+        edadMeses = int.tryParse(_ageController.text);
+      }
+
+      // Crear mascota
+      final result = await _petService.createPet(
+        nombre: _nameController.text.trim(),
+        especie: _selectedSpecies,
+        refugioId: shelterIdResult,
+        raza: _raceController.text.isNotEmpty
+            ? _raceController.text.trim()
+            : null,
+        edadMeses: edadMeses,
+        descripcion: _descriptionController.text.trim(),
+        sexo: (_selectedSex == 'macho' || _selectedSex == 'hembra')
+            ? _selectedSex
+            : null,
+        tamano: _selectedSize,
+        vacunado: _isVaccinated,
+        desparasitado: _isDewormed,
+        esterilizado: _isSterilized,
+        microchip: _hasMicrochip,
+        cuidadosEspeciales: _requiresSpecialCare,
+        notasSalud: _healthNotesController.text.isNotEmpty
+            ? _healthNotesController.text.trim()
+            : null,
+        imageFiles: _photoFiles,
+        mainPhotoIndex: _mainPhotoIndex,
+      );
+
+      if (!mounted) return;
+
+      if (result['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('¡Mascota publicada exitosamente!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Error al publicar mascota'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -144,8 +325,9 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                     child: Row(
                       children: [
                         // Fotos ya agregadas
-                        ..._photos.asMap().entries.map((entry) {
+                        ..._photoFiles.asMap().entries.map((entry) {
                           int index = entry.key;
+                          File photoFile = entry.value;
                           bool isMain = _mainPhotoIndex == index;
                           return Container(
                             margin: const EdgeInsets.only(right: 12),
@@ -168,13 +350,9 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                                     child: Container(
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(12),
-                                        color: Colors.orange.shade100,
-                                      ),
-                                      child: Center(
-                                        child: Icon(
-                                          Icons.pets,
-                                          color: Colors.orange,
-                                          size: 40,
+                                        image: DecorationImage(
+                                          image: FileImage(photoFile),
+                                          fit: BoxFit.cover,
                                         ),
                                       ),
                                     ),
@@ -240,7 +418,7 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                         }),
 
                         // Botón agregar foto
-                        if (_photos.length < _maxPhotos)
+                        if (_photoFiles.length < _maxPhotos)
                           GestureDetector(
                             onTap: _addPhoto,
                             child: Container(
@@ -297,7 +475,7 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            '${_photos.length}/$_maxPhotos fotos agregadas. Las fotos de buena calidad aumentan las adopciones.',
+                            '${_photoFiles.length}/$_maxPhotos fotos agregadas. Las fotos de buena calidad aumentan las adopciones.',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.amber.shade900,
@@ -376,8 +554,7 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                         horizontal: 14,
                         vertical: 4,
                       ),
-                      items: ['Perro', 'Gato', 'Conejo', 'Otro']
-                          .map((species) {
+                      items: ['Perro', 'Gato', 'Conejo', 'Otro'].map((species) {
                         return DropdownMenuItem(
                           value: species,
                           child: Text(species),
@@ -386,6 +563,111 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                       onChanged: (value) {
                         setState(() {
                           _selectedSpecies = value ?? 'Perro';
+                        });
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // EDAD (MESES)
+                  Text(
+                    '📅 EDAD (en meses)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _ageController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: 'Ej: 6, 12, 24...',
+                      hintStyle: TextStyle(color: Colors.grey.shade400),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // SEXO
+                  Text(
+                    '⚧️ SEXO',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButton<String>(
+                      value: _selectedSex,
+                      isExpanded: true,
+                      underline: const SizedBox(),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 4,
+                      ),
+                      items: ['No especificado', 'Macho', 'Hembra'].map((sex) {
+                        return DropdownMenuItem(value: sex, child: Text(sex));
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedSex = value ?? 'No especificado';
+                        });
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // TAMAÑO
+                  Text(
+                    '📏 TAMAÑO',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButton<String>(
+                      value: _selectedSize,
+                      isExpanded: true,
+                      underline: const SizedBox(),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 4,
+                      ),
+                      items: ['Pequeño', 'Mediano', 'Grande', 'Muy Grande'].map(
+                        (size) {
+                          return DropdownMenuItem(
+                            value: size,
+                            child: Text(size),
+                          );
+                        },
+                      ).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedSize = value ?? 'Mediano';
                         });
                       },
                     ),
@@ -472,10 +754,7 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                   // SUGERENCIAS
                   Text(
                     'Sugerencias:',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -495,8 +774,10 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                   // SECCIÓN: ESTADO DE SALUD
                   Row(
                     children: [
-                      const Icon(Icons.health_and_safety_outlined,
-                          color: Colors.grey),
+                      const Icon(
+                        Icons.health_and_safety_outlined,
+                        color: Colors.grey,
+                      ),
                       const SizedBox(width: 8),
                       const Text(
                         'Estado de Salud',
@@ -619,70 +900,39 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryTeal,
+                        disabledBackgroundColor: Colors.grey[400],
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
-                      onPressed: () {
-                        // Validaciones
-                        if (_photos.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content:
-                                  Text('Por favor agrega al menos una foto'),
-                              backgroundColor: Colors.red,
+                      onPressed: _isLoading ? null : _handlePublish,
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check, color: Colors.white),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Publicar Mascota',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
                             ),
-                          );
-                          return;
-                        }
-
-                        if (_nameController.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  'Por favor ingresa el nombre de la mascota'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-
-                        if (_descriptionController.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Por favor agrega una descripción'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content:
-                                Text('¡Mascota publicada exitosamente!'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-
-                        Navigator.pop(context);
-                      },
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.check, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text(
-                            'Publicar Mascota',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -732,11 +982,7 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                 borderRadius: BorderRadius.circular(6),
               ),
               child: isSelected
-                  ? const Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 16,
-                    )
+                  ? const Icon(Icons.check, color: Colors.white, size: 16)
                   : null,
             ),
             const SizedBox(width: 12),
@@ -757,10 +1003,7 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 ],
               ),
@@ -792,10 +1035,7 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
         ),
         child: Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: AppColors.primaryOrange,
-          ),
+          style: TextStyle(fontSize: 12, color: AppColors.primaryOrange),
         ),
       ),
     );

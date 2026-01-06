@@ -250,17 +250,30 @@ class AuthService {
   }
 
   /// Obtener ID del refugio si el usuario es refugio
+  /// Obtener ID del refugio (usamos el ID del perfil del usuario refugio)
   static Future<String?> getShelterIdForCurrentUser() async {
     try {
       final userId = getCurrentUserId();
-      if (userId == null) return null;
+      if (userId == null) {
+        print('Error: No hay usuario autenticado');
+        return null;
+      }
 
-      final response = await _supabase
-          .from('shelters')
-          .select('id')
-          .eq('profile_id', userId)
-          .maybeSingle();
-      return response?['id'];
+      // Verificar que el usuario es un refugio
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        print('Error: Usuario no encontrado');
+        return null;
+      }
+
+      final role = user.userMetadata?['rol'] ?? user.userMetadata?['role'];
+      if (role != 'refugio') {
+        print('Error: El usuario no es un refugio. Rol: $role');
+        return null;
+      }
+
+      // El shelter ID es el mismo que el profile ID del usuario
+      return userId;
     } catch (e) {
       print('Error al obtener ID del refugio: $e');
       return null;
