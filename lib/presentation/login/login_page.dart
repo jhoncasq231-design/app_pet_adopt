@@ -1,9 +1,62 @@
 import 'package:flutter/material.dart';
 import '../../core/colors.dart';
+import '../../data/services/auth_service.dart';
 import '../routes/app_routes.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  late TextEditingController _emailController;
+  late TextEditingController _passwordController;
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController();
+    _passwordController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _handleLogin() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final result = await AuthService.login(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+
+    if (!mounted) return;
+
+    if (result['success']) {
+      final userRole = AuthService.getUserRole();
+      if (userRole == 'adoptante') {
+        Navigator.pushReplacementNamed(context, AppRoutes.homeAdoptant);
+      } else {
+        Navigator.pushReplacementNamed(context, AppRoutes.homeShelter);
+      }
+    } else {
+      setState(() {
+        _errorMessage = result['message'];
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,9 +100,33 @@ class LoginPage extends StatelessWidget {
 
                   const SizedBox(height: 30),
 
+                  if (_errorMessage != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.error, color: Colors.red.shade700),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: TextStyle(color: Colors.red.shade700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
                   const Text('EMAIL'),
                   const SizedBox(height: 6),
                   TextField(
+                    controller: _emailController,
                     decoration: InputDecoration(
                       hintText: 'tu@email.com',
                       border: OutlineInputBorder(
@@ -63,6 +140,7 @@ class LoginPage extends StatelessWidget {
                   const Text('CONTRASEÑA'),
                   const SizedBox(height: 6),
                   TextField(
+                    controller: _passwordController,
                     obscureText: true,
                     decoration: InputDecoration(
                       hintText: '••••••••',
@@ -95,13 +173,22 @@ class LoginPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
-                      onPressed: () {
-                        // más adelante login real
-                      },
-                      child: const Text(
-                        'Iniciar Sesión',
-                        style: TextStyle(fontSize: 16),
-                      ),
+                      onPressed: _isLoading ? null : _handleLogin,
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text(
+                              'Iniciar Sesión',
+                              style: TextStyle(fontSize: 16),
+                            ),
                     ),
                   ),
 
@@ -133,10 +220,7 @@ class LoginPage extends StatelessWidget {
                       const Text('¿No tienes cuenta?'),
                       TextButton(
                         onPressed: () {
-                          Navigator.pushReplacementNamed(
-                            context,
-                            AppRoutes.home,
-                          );
+                          Navigator.pushNamed(context, AppRoutes.roleSelection);
                         },
                         child: Text(
                           'Regístrate',

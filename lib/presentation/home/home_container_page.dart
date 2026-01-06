@@ -16,26 +16,18 @@ class HomeContainerPage extends StatefulWidget {
 class _HomeContainerPageState extends State<HomeContainerPage> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    HomeAdoptantPage(),
-    MapPage(),
-    AiChatPage(),
-    AdoptionRequestsPage(),
-    Center(child: Text('Perfil (En desarrollo)')),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-  children: const [
-    HomeAdoptantPage(),        // index 0
-    MapPage(),                 // index 1
-    AiChatPage(),              // index 2
-    AdoptionRequestsPage(),    // index 3
-    ProfilePage(),             // index 4 ✅
-  ],
+        children: const [
+          HomeAdoptantPage(), // index 0
+          MapPage(), // index 1
+          AiChatPage(), // index 2
+          AdoptionRequestsPage(), // index 3
+          ProfilePage(), // index 4 ✅
+        ],
       ),
 
       // 🔥 TABS COMO EN LA IMAGEN

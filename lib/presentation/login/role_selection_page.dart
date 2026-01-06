@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/colors.dart';
-
-// ✅ IMPORTA LOS CONTENEDORES (CON TABS)
-import '../home/home_container_adoptant_page.dart';
-import '../shelter_admin/home_container_shelter_page.dart';
+import '../login/registro_page.dart';
 
 class RoleSelectionPage extends StatelessWidget {
   const RoleSelectionPage({super.key});
@@ -46,7 +43,8 @@ class RoleSelectionPage extends StatelessWidget {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const HomeContainerAdoptantPage(),
+                    builder: (_) =>
+                        const RegistroPage(selectedRole: 'adoptante'),
                   ),
                 );
               },
@@ -64,7 +62,7 @@ class RoleSelectionPage extends StatelessWidget {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const HomeContainerShelterPage(),
+                    builder: (_) => const RegistroPage(selectedRole: 'refugio'),
                   ),
                 );
               },
@@ -100,9 +98,7 @@ class _RoleCard extends StatelessWidget {
       onTap: onTap,
       child: Card(
         elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Row(
