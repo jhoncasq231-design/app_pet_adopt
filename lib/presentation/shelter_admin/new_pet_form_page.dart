@@ -9,24 +9,29 @@ class NewPetFormPage extends StatefulWidget {
 }
 
 class _NewPetFormPageState extends State<NewPetFormPage> {
-  late TextEditingController _nameController;
-  late TextEditingController _raceController;
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _raceController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _healthNotesController = TextEditingController();
+  
   String _selectedSpecies = 'Perro';
   int _mainPhotoIndex = -1;
-  List<String> _photos = [];
-  int _maxPhotos = 5;
-
-  @override
-  void initState() {
-    super.initState();
-    _nameController = TextEditingController();
-    _raceController = TextEditingController();
-  }
+  final List<String> _photos = [];
+  final int _maxPhotos = 5;
+  
+  // Estados de salud
+  bool _isVaccinated = false;
+  bool _isDewormed = false;
+  bool _isSterilized = false;
+  bool _hasMicrochip = false;
+  bool _requiresSpecialCare = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     _raceController.dispose();
+    _descriptionController.dispose();
+    _healthNotesController.dispose();
     super.dispose();
   }
 
@@ -142,7 +147,6 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                         ..._photos.asMap().entries.map((entry) {
                           int index = entry.key;
                           bool isMain = _mainPhotoIndex == index;
-
                           return Container(
                             margin: const EdgeInsets.only(right: 12),
                             child: Stack(
@@ -233,7 +237,8 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                               ],
                             ),
                           );
-                        }).toList(),
+                        }),
+
                         // Botón agregar foto
                         if (_photos.length < _maxPhotos)
                           GestureDetector(
@@ -345,6 +350,7 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 18),
 
                   // ESPECIE
@@ -370,7 +376,8 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                         horizontal: 14,
                         vertical: 4,
                       ),
-                      items: ['Perro', 'Gato', 'Conejo', 'Otro'].map((species) {
+                      items: ['Perro', 'Gato', 'Conejo', 'Otro']
+                          .map((species) {
                         return DropdownMenuItem(
                           value: species,
                           child: Text(species),
@@ -383,6 +390,7 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                       },
                     ),
                   ),
+
                   const SizedBox(height: 18),
 
                   // RAZA
@@ -409,9 +417,203 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 28),
 
-                  // BOTÓN PUBLICAR (placeholder para la segunda parte)
+                  // SECCIÓN: DESCRIPCIÓN
+                  Row(
+                    children: [
+                      const Icon(Icons.edit_note, color: Colors.grey),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Descripción',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // CUÉNTANOS SOBRE ESTA MASCOTA
+                  Text(
+                    '💬 CUÉNTANOS SOBRE ESTA MASCOTA',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _descriptionController,
+                    maxLines: 6,
+                    maxLength: 500,
+                    decoration: InputDecoration(
+                      hintText:
+                          'Describe su personalidad, historia, comportamiento con niños y otras mascotas, nivel de actividad, qué tipo de hogar sería ideal...',
+                      hintStyle: TextStyle(
+                        color: Colors.grey.shade400,
+                        fontSize: 13,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.all(14),
+                      counterStyle: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // SUGERENCIAS
+                  Text(
+                    'Sugerencias:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildSuggestionChip('+ Juguetón'),
+                      _buildSuggestionChip('+ Tranquilo'),
+                      _buildSuggestionChip('+ Cariñoso'),
+                      _buildSuggestionChip('+ Ideal para niños'),
+                      _buildSuggestionChip('+ Apto departamento'),
+                    ],
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  // SECCIÓN: ESTADO DE SALUD
+                  Row(
+                    children: [
+                      const Icon(Icons.health_and_safety_outlined,
+                          color: Colors.grey),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Estado de Salud',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // VACUNADO
+                  _buildHealthCheckbox(
+                    value: _isVaccinated,
+                    onChanged: (value) {
+                      setState(() {
+                        _isVaccinated = value ?? false;
+                      });
+                    },
+                    title: 'Vacunado/a',
+                    subtitle: 'Tiene todas las vacunas al día',
+                    isSelected: _isVaccinated,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // DESPARASITADO
+                  _buildHealthCheckbox(
+                    value: _isDewormed,
+                    onChanged: (value) {
+                      setState(() {
+                        _isDewormed = value ?? false;
+                      });
+                    },
+                    title: 'Desparasitado/a',
+                    subtitle: 'Tratamiento antiparasitario completado',
+                    isSelected: _isDewormed,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ESTERILIZADO
+                  _buildHealthCheckbox(
+                    value: _isSterilized,
+                    onChanged: (value) {
+                      setState(() {
+                        _isSterilized = value ?? false;
+                      });
+                    },
+                    title: 'Esterilizado/a',
+                    subtitle: 'Ha sido castrado/a o esterilizado/a',
+                    isSelected: _isSterilized,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // MICROCHIP
+                  _buildHealthCheckbox(
+                    value: _hasMicrochip,
+                    onChanged: (value) {
+                      setState(() {
+                        _hasMicrochip = value ?? false;
+                      });
+                    },
+                    title: 'Microchip',
+                    subtitle: 'Tiene microchip de identificación',
+                    isSelected: _hasMicrochip,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // REQUIERE CUIDADOS ESPECIALES
+                  _buildHealthCheckbox(
+                    value: _requiresSpecialCare,
+                    onChanged: (value) {
+                      setState(() {
+                        _requiresSpecialCare = value ?? false;
+                      });
+                    },
+                    title: 'Requiere cuidados especiales',
+                    subtitle: 'Necesita medicación o atención particular',
+                    isSelected: _requiresSpecialCare,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // NOTAS ADICIONALES DE SALUD
+                  Text(
+                    '🩺 NOTAS ADICIONALES DE SALUD (OPCIONAL)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _healthNotesController,
+                    maxLines: 4,
+                    maxLength: 300,
+                    decoration: InputDecoration(
+                      hintText:
+                          'Alergias, medicamentos, condiciones crónicas, historial médico relevante...',
+                      hintStyle: TextStyle(
+                        color: Colors.grey.shade400,
+                        fontSize: 13,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.all(14),
+                      counterStyle: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  // BOTÓN PUBLICAR
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -423,7 +625,48 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                         ),
                       ),
                       onPressed: () {
-                        // TODO: Continuar con segunda parte del formulario
+                        // Validaciones
+                        if (_photos.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content:
+                                  Text('Por favor agrega al menos una foto'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        if (_nameController.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Por favor ingresa el nombre de la mascota'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        if (_descriptionController.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Por favor agrega una descripción'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content:
+                                Text('¡Mascota publicada exitosamente!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+
+                        Navigator.pop(context);
                       },
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -447,6 +690,112 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHealthCheckbox({
+    required bool value,
+    required Function(bool?) onChanged,
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+  }) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primaryTeal.withOpacity(0.05)
+              : Colors.white,
+          border: Border.all(
+            color: isSelected ? AppColors.primaryTeal : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primaryTeal : Colors.white,
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primaryTeal
+                      : Colors.grey.shade400,
+                  width: 2,
+                ),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: isSelected
+                  ? const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 16,
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? AppColors.primaryTeal
+                          : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuggestionChip(String label) {
+    return GestureDetector(
+      onTap: () {
+        // Agregar texto sugerido al campo de descripción
+        String currentText = _descriptionController.text;
+        String suggestion = label.replaceFirst('+ ', '');
+
+        if (currentText.isEmpty) {
+          _descriptionController.text = suggestion;
+        } else {
+          _descriptionController.text = '$currentText, $suggestion';
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.primaryOrange),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: AppColors.primaryOrange,
+          ),
         ),
       ),
     );
