@@ -1,27 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'presentation/routes/app_routes.dart';
 import 'presentation/login/login_page.dart';
 import 'presentation/home/home_container_adoptant_page.dart';
 import 'presentation/shelter_admin/home_container_shelter_page.dart';
 
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializar Supabase
-  await Supabase.initialize(
-    url: 'https://qygsuhhtijuzobuwfaxt.supabase.co',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5Z3N1aGh0aWp1em9idXdmYXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NDM1NTYsImV4cCI6MjA4MzIxOTU1Nn0.Lfv4sTOWkhwVIy8IddOIy2jbPtLAe5w915MlxKDkvlE',
-  );
+  await dotenv.load(fileName: ".env");
 
-  // Firebase y notificaciones desactivados por ahora
-  // Se habilitarán cuando tengas Firebase configurado
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+  );
 
   runApp(const PetAdoptApp());
 }
-
 class PetAdoptApp extends StatelessWidget {
   const PetAdoptApp({super.key});
 

@@ -1,3 +1,4 @@
+import 'package:app_pet_adopt/presentation/login/role_selection_google_page.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -9,7 +10,9 @@ class GoogleAuthService {
   static SupabaseClient get _supabase => Supabase.instance.client;
 
   /// Iniciar sesión con Google
-  static Future<Map<String, dynamic>> signInWithGoogle() async {
+  static Future<Map<String, dynamic>> signInWithGoogle({
+  required String rol,
+}) async {
     try {
       // Obtener cuenta de Google
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -49,17 +52,18 @@ class GoogleAuthService {
         // El perfil no existe, crear uno nuevo
         // Usar 'adoptante' como rol por defecto para OAuth
         try {
-          await _supabase.from('profiles').insert({
-            'id': userId,
-            'email': userEmail,
-            'rol': 'adoptante', // Rol por defecto para OAuth
-            'nombre': googleUser.displayName ?? userEmail.split('@')[0],
-            'foto_perfil': googleUser.photoUrl,
-          });
-        } catch (profileError) {
-          print('Error al crear perfil: $profileError');
-          // Si el perfil ya se creó por trigger, continuamos
-        }
+  await _supabase.from('profiles').insert({
+    'id': userId,
+    'email': userEmail,
+    'rol': RoleSelectionGooglePage, // ✅ rol elegido por el usuario
+    'nombre': googleUser.displayName ?? userEmail.split('@')[0],
+    'foto_perfil': googleUser.photoUrl,
+  });
+} catch (profileError) {
+  print('Error al crear perfil: $profileError');
+  // Si el perfil ya existe, continuamos
+}
+
 
         return {
           'success': true,

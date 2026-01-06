@@ -12,12 +12,14 @@ import '../ai_chat/ai_chat_page.dart';
 import '../map/map_page.dart';
 import '../adoption_requests/adoption_requests_page.dart';
 import '../pet_detail/pet_detail_page.dart';
+import '../login/role_selection_google_page.dart';
 
 class AppRoutes {
   // nombres de rutas
   static const login = '/login';
   static const registro = '/registro';
   static const roleSelection = '/roles';
+  static const roleSelectionGoogle = '/roles-google';
   static const forgotPassword = '/forgot-password';
   static const homeAdoptant = '/home-adoptant';
   static const homeShelter = '/home-shelter';
@@ -31,6 +33,7 @@ class AppRoutes {
     login: (_) => const LoginPage(),
     registro: (_) => const RegistroPage(),
     roleSelection: (_) => const RoleSelectionPage(),
+    roleSelectionGoogle: (_) => const RoleSelectionGooglePage(),
     forgotPassword: (_) => const ForgotPasswordPage(),
     homeAdoptant: (_) => const HomeContainerAdoptantPage(),
     homeShelter: (_) => const HomeContainerShelterPage(),
