@@ -125,13 +125,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<String?> _uploadProfileImage(File imageFile) async {
     try {
       final userId = AuthService.getCurrentUserId();
-      if (userId == null) return null;
+      if (userId == null) {
+        print('Error: No hay usuario autenticado');
+        return null;
+      }
 
       final fileName = 'profile_$userId.jpg';
       final path = 'profile_pictures/$fileName';
 
+      print('Subiendo imagen a: $path');
+
       await Supabase.instance.client.storage
-          .from('profiles')
+          .from('pet-images')
           .upload(
             path,
             imageFile,
@@ -139,12 +144,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
           );
 
       final publicUrl = Supabase.instance.client.storage
-          .from('profiles')
+          .from('pet-images')
           .getPublicUrl(path);
 
+      print('URL pública generada: $publicUrl');
       return publicUrl;
     } catch (e) {
       print('Error al subir foto: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al subir foto: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return null;
     }
   }
@@ -173,7 +185,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
       // Si hay una imagen seleccionada, subirla primero
       String? fotoPerfil;
       if (_selectedImage != null) {
+        print('Seleccionada imagen, subiendo...');
         fotoPerfil = await _uploadProfileImage(_selectedImage!);
+        if (fotoPerfil == null) {
+          throw 'Error al subir la imagen';
+        }
+        print('Imagen subida correctamente: $fotoPerfil');
       }
 
       final supabase = Supabase.instance.client;
@@ -190,9 +207,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
       // Agregar foto solo si fue cargada
       if (fotoPerfil != null) {
         updateData['foto_perfil'] = fotoPerfil;
+        print('Foto perfil agregada al update: $fotoPerfil');
       }
 
+      print('Actualizando perfil en Supabase...');
       await supabase.from('profiles').update(updateData).eq('id', userId);
+      print('Perfil actualizado correctamente');
 
       if (!mounted) return;
 
@@ -205,6 +225,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
       Navigator.pop(context, true);
     } catch (e) {
+      print('Error general: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error al actualizar perfil: $e'),
@@ -267,11 +288,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               fit: BoxFit.cover,
                             ),
                           )
-                        : const Icon(
-                            Icons.person,
-                            size: 60,
-                            color: Colors.grey,
-                          ),
+                        : (widget.profileData['foto_perfil'] != null &&
+                                  widget.profileData['foto_perfil']
+                                      .toString()
+                                      .isNotEmpty
+                              ? ClipOval(
+                                  child: Image.network(
+                                    widget.profileData['foto_perfil'],
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Icon(
+                                      Icons.person,
+                                      size: 60,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.person,
+                                  size: 60,
+                                  color: Colors.grey,
+                                )),
                   ),
                   Container(
                     decoration: BoxDecoration(

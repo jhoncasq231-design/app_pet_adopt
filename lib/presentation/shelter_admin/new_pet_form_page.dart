@@ -4,9 +4,12 @@ import 'dart:io';
 import '../../core/colors.dart';
 import '../../data/services/pet_service.dart';
 import '../../data/services/auth_service.dart';
+import '../../data/models/pet_model.dart';
 
 class NewPetFormPage extends StatefulWidget {
-  const NewPetFormPage({super.key});
+  final PetModel? pet;
+
+  const NewPetFormPage({super.key, this.pet});
 
   @override
   State<NewPetFormPage> createState() => _NewPetFormPageState();
@@ -36,6 +39,7 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
   bool _isSterilized = false;
   bool _hasMicrochip = false;
   bool _requiresSpecialCare = false;
+  bool get isEditMode => widget.pet != null;
 
   @override
   void dispose() {
@@ -45,6 +49,30 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
     _healthNotesController.dispose();
     _ageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.pet != null) {
+      final pet = widget.pet!;
+      _nameController.text = pet.name;
+      _raceController.text = pet.raza ?? '';
+      _descriptionController.text = pet.descripcion ?? '';
+      _healthNotesController.text = pet.notasSalud ?? '';
+      _ageController.text = pet.edadMeses?.toString() ?? '';
+
+      _selectedSpecies = pet.especie;
+      _selectedSex = pet.sex;
+      _selectedSize = pet.size;
+
+      _isVaccinated = pet.vacunado;
+      _isDewormed = pet.desparasitado;
+      _isSterilized = pet.esterilizado;
+      _hasMicrochip = pet.microchip;
+      _requiresSpecialCare = pet.cuidadosEspeciales;
+    }
   }
 
   Future<void> _addPhoto() async {
@@ -183,38 +211,65 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
         edadMeses = int.tryParse(_ageController.text);
       }
 
-      // Crear mascota
-      final result = await _petService.createPet(
-        nombre: _nameController.text.trim(),
-        especie: _selectedSpecies,
-        refugioId: shelterIdResult,
-        raza: _raceController.text.isNotEmpty
-            ? _raceController.text.trim()
-            : null,
-        edadMeses: edadMeses,
-        descripcion: _descriptionController.text.trim(),
-        sexo: (_selectedSex == 'macho' || _selectedSex == 'hembra')
-            ? _selectedSex
-            : null,
-        tamano: _selectedSize,
-        vacunado: _isVaccinated,
-        desparasitado: _isDewormed,
-        esterilizado: _isSterilized,
-        microchip: _hasMicrochip,
-        cuidadosEspeciales: _requiresSpecialCare,
-        notasSalud: _healthNotesController.text.isNotEmpty
-            ? _healthNotesController.text.trim()
-            : null,
-        imageFiles: _photoFiles,
-        mainPhotoIndex: _mainPhotoIndex,
-      );
+      // Crear o actualizar mascota
+      final result = isEditMode
+          ? await _petService.updatePet(
+              petId: widget.pet!.id,
+              nombre: _nameController.text.trim(),
+              especie: _selectedSpecies,
+              raza: _raceController.text.isNotEmpty
+                  ? _raceController.text.trim()
+                  : null,
+              edadMeses: edadMeses,
+              descripcion: _descriptionController.text.trim(),
+              sexo: (_selectedSex == 'macho' || _selectedSex == 'hembra')
+                  ? _selectedSex
+                  : null,
+              tamano: _selectedSize,
+              vacunado: _isVaccinated,
+              desparasitado: _isDewormed,
+              esterilizado: _isSterilized,
+              microchip: _hasMicrochip,
+              cuidadosEspeciales: _requiresSpecialCare,
+              notasSalud: _healthNotesController.text.isNotEmpty
+                  ? _healthNotesController.text.trim()
+                  : null,
+            )
+          : await _petService.createPet(
+              nombre: _nameController.text.trim(),
+              especie: _selectedSpecies,
+              refugioId: shelterIdResult,
+              raza: _raceController.text.isNotEmpty
+                  ? _raceController.text.trim()
+                  : null,
+              edadMeses: edadMeses,
+              descripcion: _descriptionController.text.trim(),
+              sexo: (_selectedSex == 'macho' || _selectedSex == 'hembra')
+                  ? _selectedSex
+                  : null,
+              tamano: _selectedSize,
+              vacunado: _isVaccinated,
+              desparasitado: _isDewormed,
+              esterilizado: _isSterilized,
+              microchip: _hasMicrochip,
+              cuidadosEspeciales: _requiresSpecialCare,
+              notasSalud: _healthNotesController.text.isNotEmpty
+                  ? _healthNotesController.text.trim()
+                  : null,
+              imageFiles: _photoFiles,
+              mainPhotoIndex: _mainPhotoIndex,
+            );
 
       if (!mounted) return;
 
       if (result['success']) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('¡Mascota publicada exitosamente!'),
+          SnackBar(
+            content: Text(
+              isEditMode
+                  ? '¡Mascota actualizada exitosamente!'
+                  : '¡Mascota publicada exitosamente!',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -270,9 +325,9 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Nueva Mascota',
-                        style: TextStyle(
+                      Text(
+                        isEditMode ? 'Editar Mascota' : 'Nueva Mascota',
+                        style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -280,7 +335,9 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Completa todos los campos requeridos',
+                        isEditMode
+                            ? 'Actualiza la información de la mascota'
+                            : 'Completa todos los campos requeridos',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.white.withOpacity(0.8),
@@ -918,14 +975,16 @@ class _NewPetFormPageState extends State<NewPetFormPage> {
                                 strokeWidth: 2,
                               ),
                             )
-                          : const Row(
+                          : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.check, color: Colors.white),
-                                SizedBox(width: 8),
+                                const Icon(Icons.check, color: Colors.white),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'Publicar Mascota',
-                                  style: TextStyle(
+                                  isEditMode
+                                      ? 'Actualizar Mascota'
+                                      : 'Publicar Mascota',
+                                  style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,

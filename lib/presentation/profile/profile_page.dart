@@ -119,12 +119,35 @@ class _ProfilePageState extends State<ProfilePage> {
                         decoration: BoxDecoration(
                           color: AppColors.primaryTeal.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(50),
+                          border: Border.all(
+                            color: AppColors.primaryTeal,
+                            width: 2,
+                          ),
                         ),
-                        child: Icon(
-                          rol == 'refugio' ? Icons.pets : Icons.person,
-                          size: 50,
-                          color: AppColors.primaryTeal,
-                        ),
+                        child:
+                            userProfile?['foto_perfil'] != null &&
+                                userProfile!['foto_perfil']
+                                    .toString()
+                                    .isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(50),
+                                child: Image.network(
+                                  userProfile!['foto_perfil'],
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Icon(
+                                    rol == 'refugio'
+                                        ? Icons.pets
+                                        : Icons.person,
+                                    size: 50,
+                                    color: AppColors.primaryTeal,
+                                  ),
+                                ),
+                              )
+                            : Icon(
+                                rol == 'refugio' ? Icons.pets : Icons.person,
+                                size: 50,
+                                color: AppColors.primaryTeal,
+                              ),
                       ),
                     ),
                     const SizedBox(height: 20),

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../core/colors.dart';
 import '../../data/services/auth_service.dart';
-import '../../data/services/google_auth_service.dart';
-import '../../data/services/adoption_notification_service.dart';
 import '../routes/app_routes.dart';
 import 'forgot_password_page.dart';
-import "role_selection_page.dart";
 import "role_selection_google_page.dart";
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -88,8 +86,6 @@ class _LoginPageState extends State<LoginPage> {
       MaterialPageRoute(builder: (context) => const ForgotPasswordPage()),
     );
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -310,15 +306,15 @@ class _LoginPageState extends State<LoginPage> {
                   // GOOGLE
                   OutlinedButton.icon(
                     onPressed: _isLoading
-    ? null
-    : () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const RoleSelectionGooglePage(),
-          ),
-        );
-      },
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const RoleSelectionGooglePage(),
+                              ),
+                            );
+                          },
 
                     icon: Icon(
                       Icons.g_mobiledata,
