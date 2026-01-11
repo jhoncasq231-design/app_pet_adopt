@@ -10,7 +10,7 @@ class AiChatPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => ChatCubit(geminiService: GeminiService()),
+      create: (_) => ChatCubit(geminiService: GeminiService()),
       child: const _ChatPageContent(),
     );
   }
@@ -30,27 +30,9 @@ class _ChatPageContent extends StatelessWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'Asistente PetAdopt',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            Text('Powered by Gemini AI', style: TextStyle(fontSize: 12)),
-          ],
-        ),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(Icons.smart_toy, color: Colors.orange),
-            ),
-          ),
-        ],
+        title: const Text('Asistente PetAdopt'),
       ),
-      body: _ChatBody(),
+      body: const _ChatBody(),
     );
   }
 }
@@ -63,7 +45,7 @@ class _ChatBody extends StatefulWidget {
 }
 
 class _ChatBodyState extends State<_ChatBody> {
-  late final TextEditingController _controller = TextEditingController();
+  final TextEditingController _controller = TextEditingController();
 
   @override
   void dispose() {
@@ -77,22 +59,22 @@ class _ChatBodyState extends State<_ChatBody> {
       children: [
         Expanded(
           child: BlocBuilder<ChatCubit, ChatState>(
-            builder: (context, state) {
+            builder: (_, state) {
               final messages = state.messages;
-              bool isTyping = state is ChatLoading;
+              final isTyping = state is ChatLoading;
 
               return ListView.builder(
                 padding: const EdgeInsets.all(16),
                 itemCount: messages.length + (isTyping ? 1 : 0),
                 itemBuilder: (_, index) {
                   if (index == messages.length && isTyping) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                    return const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
+                          children: [
                             SizedBox(
                               width: 16,
                               height: 16,
@@ -133,8 +115,6 @@ class _ChatBodyState extends State<_ChatBody> {
             },
           ),
         ),
-
-        // INPUT
         Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -146,10 +126,6 @@ class _ChatBodyState extends State<_ChatBody> {
                     hintText: 'Escribe tu pregunta...',
                     filled: true,
                     fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(25),
                       borderSide: BorderSide.none,

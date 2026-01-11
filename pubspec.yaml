@@ -39,12 +39,12 @@ dependencies:
   image_picker: ^1.0.4
   uuid: ^4.0.0
   intl: ^0.20.0
-  flutter_dotenv: ^5.1.0
+  flutter_dotenv: ^5.0.1
   #dependencias para manejo de estado y peticiones HTTP con google gemini chat
-  flutter_bloc: ^9.1.0       # Gestión de estado
-  http: ^1.4.0               # Llamadas HTTP
-  equatable: ^2.0.7          # Comparaciones de objetos
-  flutter_markdown: ^0.7.4+1 # Para mostrar respuestas con Markdown
+  flutter_bloc: ^8.1.2
+  http: ^1.1.0
+  equatable: ^2.0.5
+  flutter_markdown: ^0.6.10
   
   # OAuth con Google
   google_sign_in: ^6.1.6

@@ -1,8 +1,12 @@
-enum MessageType { user, ai }
+// lib/data/models/message.dart
+import 'package:equatable/equatable.dart';
 
-class Message {
+class ChatMessage extends Equatable {
   final String text;
-  final MessageType type;
+  final bool isUser;
 
-  Message({required this.text, required this.type});
+  const ChatMessage({required this.text, required this.isUser});
+
+  @override
+  List<Object?> get props => [text, isUser];
 }
