@@ -52,79 +52,53 @@ class _ShelterAdoptionRequestsPageState
     }
   }
 
-  Future<void> _showRequestDetails(Map<String, dynamic> request) async {
-    final petData = request['pets'] as Map<String, dynamic>?;
-    final userData = request['profiles'] as Map<String, dynamic>?;
-    final petName = petData?['nombre'] ?? 'Mascota desconocida';
-    final userName = userData?['nombre'] ?? 'Usuario desconocido';
-    final userEmail = userData?['email'] ?? 'N/A';
-    final userPhone = userData?['telefono'] ?? 'N/A';
-    final userLocation = userData?['ubicacion'] ?? 'N/A';
-    final status = (request['status'] as String? ?? 'pendiente').toLowerCase();
+Future<void> _approveRequest(String requestId) async {
+  final cleanId = requestId.trim(); // quitar espacios invisibles
+  print('ID que va a aprobar en Supabase: "$cleanId"');
 
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Detalles de la Solicitud',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 10),
-            _buildDetailRow('Mascota', petName),
-            _buildDetailRow('Solicitante', userName),
-            _buildDetailRow('Email', userEmail),
-            _buildDetailRow('Teléfono', userPhone),
-            _buildDetailRow('Ubicación', userLocation),
-            _buildDetailRow('Estado', status.toUpperCase()),
-            _buildDetailRow(
-              'Fecha Solicitud',
-              _formatDate(request['fecha_solicitud'] as String?),
-            ),
-            const SizedBox(height: 20),
-            if (status == 'pendiente')
-              SingleChildScrollView(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          _approveRequest(request['id'] as String);
-                          Navigator.pop(context);
-                        },
-                        icon: const Icon(Icons.check),
-                        label: const Text('Aprobar'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          _rejectRequest(request['id'] as String);
-                          Navigator.pop(context);
-                        },
-                        icon: const Icon(Icons.close),
-                        label: const Text('Rechazar'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
+  final success = await _adoptionService.approveAdoptionRequest(cleanId);
+  print('Resultado del servicio (aprobar): $success');
+
+  if (mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? 'Solicitud aprobada' : 'Error al aprobar la solicitud',
         ),
+        backgroundColor: success ? Colors.green : Colors.red,
       ),
     );
+
+    // Refrescar la lista
+    setState(() {
+      _shelterRequests = _adoptionService.getShelterAdoptionRequests();
+    });
   }
+}
+
+Future<void> _rejectRequest(String requestId) async {
+  final cleanId = requestId.trim(); // quitar espacios invisibles
+  print('ID que va a rechazar en Supabase: "$cleanId"');
+
+  final success = await _adoptionService.rejectAdoptionRequest(cleanId);
+  print('Resultado del servicio (rechazar): $success');
+
+  if (mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? 'Solicitud rechazada' : 'Error al rechazar la solicitud',
+        ),
+        backgroundColor: success ? Colors.red : Colors.grey,
+      ),
+    );
+
+    // Refrescar la lista
+    setState(() {
+      _shelterRequests = _adoptionService.getShelterAdoptionRequests();
+    });
+  }
+}
 
   Widget _buildDetailRow(String label, String value) {
     return Padding(
@@ -151,54 +125,73 @@ class _ShelterAdoptionRequestsPageState
     );
   }
 
-  Future<void> _approveRequest(String requestId) async {
-    final success = await _adoptionService.approveAdoptionRequest(requestId);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success ? 'Solicitud aprobada' : 'Error al aprobar la solicitud',
-          ),
-          backgroundColor: success ? Colors.green : Colors.red,
-        ),
-      );
-      setState(() {
-        _shelterRequests = _adoptionService.getShelterAdoptionRequests();
-      });
-    }
-  }
+  Future<void> _showRequestDetails(Map<String, dynamic> request) async {
+    final petData = request['pets'] as Map<String, dynamic>? ?? {};
+    final userData = request['profiles'] as Map<String, dynamic>? ?? {};
+    final status = (request['status'] as String? ?? 'pendiente').toLowerCase();
 
-  Future<void> _rejectRequest(String requestId) async {
-    final success = await _adoptionService.rejectAdoptionRequest(requestId);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success ? 'Solicitud rechazada' : 'Error al rechazar la solicitud',
-          ),
-          backgroundColor: success ? Colors.green : Colors.red,
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Detalles de la Solicitud',
+                style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 10),
+            _buildDetailRow('Mascota', petData['nombre'] ?? 'Mascota desconocida'),
+            _buildDetailRow('Solicitante', userData['nombre'] ?? 'Usuario desconocido'),
+            _buildDetailRow('Email', userData['email'] ?? 'N/A'),
+            _buildDetailRow('Teléfono', userData['telefono'] ?? 'N/A'),
+            _buildDetailRow('Ubicación', userData['ubicacion'] ?? 'N/A'),
+            _buildDetailRow('Estado', status.toUpperCase()),
+            _buildDetailRow('Fecha Solicitud',
+                _formatDate(request['fecha_solicitud'] as String?)),
+            const SizedBox(height: 20),
+            if (status == 'pendiente')
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        _approveRequest(request['id'] as String);
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.check),
+                      label: const Text('Aprobar'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        _rejectRequest(request['id'] as String);
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.close),
+                      label: const Text('Rechazar'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+          ],
         ),
-      );
-      setState(() {
-        _shelterRequests = _adoptionService.getShelterAdoptionRequests();
-      });
-    }
+      ),
+    );
   }
 
   Widget _buildRequestsList(List<Map<String, dynamic>> requests) {
     if (requests.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'No hay solicitudes',
-              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-            ),
-          ],
-        ),
+      return const Center(
+        child: Text('No hay solicitudes'),
       );
     }
 
@@ -207,25 +200,19 @@ class _ShelterAdoptionRequestsPageState
         setState(() {
           _shelterRequests = _adoptionService.getShelterAdoptionRequests();
         });
-        await Future.delayed(const Duration(milliseconds: 500));
       },
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: requests.length,
         itemBuilder: (context, index) {
           final request = requests[index];
-          final petData = request['pets'] as Map<String, dynamic>?;
-          final userData = request['profiles'] as Map<String, dynamic>?;
-          final petName = petData?['nombre'] ?? 'Mascota desconocida';
-          final userName = userData?['nombre'] ?? 'Usuario desconocido';
-          final status = (request['status'] as String? ?? 'pendiente')
-              .toLowerCase();
-          print('Solicitud filtrada: ${request['id']} - Status: $status');
+          final petData = request['pets'] as Map<String, dynamic>? ?? {};
+          final userData = request['profiles'] as Map<String, dynamic>? ?? {};
+          final status = (request['status'] as String? ?? 'pendiente').toLowerCase();
+
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: ListTile(
               contentPadding: const EdgeInsets.all(16),
               leading: Container(
@@ -238,14 +225,11 @@ class _ShelterAdoptionRequestsPageState
                 child: const Icon(Icons.pets, color: Colors.grey),
               ),
               title: Text(
-                petName,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+                petData['nombre'] ?? 'Mascota desconocida',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               subtitle: Text(
-                'Por: $userName',
+                'Por: ${userData['nombre'] ?? 'Usuario desconocido'}',
                 style: const TextStyle(fontSize: 12),
               ),
               trailing: Chip(
@@ -272,11 +256,7 @@ class _ShelterAdoptionRequestsPageState
         elevation: 0,
         title: const Text(
           'Solicitudes de Adopción',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
         ),
         bottom: TabBar(
           controller: _tabController,
@@ -296,46 +276,18 @@ class _ShelterAdoptionRequestsPageState
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
 
           final allRequests = snapshot.data ?? [];
 
-          if (allRequests.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No hay solicitudes',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          // Filtrar por estado
           final pendingRequests = allRequests
-              .where(
-                (r) =>
-                    (r['status'] as String? ?? '').toLowerCase() == 'pendiente',
-              )
+              .where((r) => (r['status'] as String? ?? '').toLowerCase() == 'pendiente')
               .toList();
           final approvedRequests = allRequests
-              .where(
-                (r) =>
-                    (r['status'] as String? ?? '').toLowerCase() == 'aprobada',
-              )
+              .where((r) => (r['status'] as String? ?? '').toLowerCase() == 'aprobada')
               .toList();
-
-          print(
-            'Total: ${allRequests.length}, Pendientes: ${pendingRequests.length}, Aprobadas: ${approvedRequests.length}',
-          );
 
           return TabBarView(
             controller: _tabController,
