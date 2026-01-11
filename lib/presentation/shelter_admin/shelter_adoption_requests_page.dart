@@ -74,7 +74,7 @@ class _ShelterAdoptionRequestsPageState
               'Detalles de la Solicitud',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
             _buildDetailRow('Mascota', petName),
             _buildDetailRow('Solicitante', userName),
             _buildDetailRow('Email', userEmail),
@@ -87,36 +87,38 @@ class _ShelterAdoptionRequestsPageState
             ),
             const SizedBox(height: 20),
             if (status == 'pendiente')
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        _approveRequest(request['id'] as String);
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(Icons.check),
-                      label: const Text('Aprobar'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+              SingleChildScrollView(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          _approveRequest(request['id'] as String);
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.check),
+                        label: const Text('Aprobar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        _rejectRequest(request['id'] as String);
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(Icons.close),
-                      label: const Text('Rechazar'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          _rejectRequest(request['id'] as String);
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.close),
+                        label: const Text('Rechazar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
           ],
         ),
@@ -183,25 +185,42 @@ class _ShelterAdoptionRequestsPageState
     }
   }
 
-  Widget _buildRequestsList(List<Map<String, dynamic>> allRequests) {
+  Widget _buildRequestsList(List<Map<String, dynamic>> requests) {
+    if (requests.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No hay solicitudes',
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
+
     return RefreshIndicator(
       onRefresh: () async {
         setState(() {
           _shelterRequests = _adoptionService.getShelterAdoptionRequests();
         });
+        await Future.delayed(const Duration(milliseconds: 500));
       },
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: allRequests.length,
+        itemCount: requests.length,
         itemBuilder: (context, index) {
-          final request = allRequests[index];
+          final request = requests[index];
           final petData = request['pets'] as Map<String, dynamic>?;
           final userData = request['profiles'] as Map<String, dynamic>?;
           final petName = petData?['nombre'] ?? 'Mascota desconocida';
           final userName = userData?['nombre'] ?? 'Usuario desconocido';
           final status = (request['status'] as String? ?? 'pendiente')
               .toLowerCase();
-          print('Solicitud completa: $request');
+          print('Solicitud filtrada: ${request['id']} - Status: $status');
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
             shape: RoundedRectangleBorder(
@@ -300,6 +319,7 @@ class _ShelterAdoptionRequestsPageState
             );
           }
 
+          // Filtrar por estado
           final pendingRequests = allRequests
               .where(
                 (r) =>
@@ -312,6 +332,10 @@ class _ShelterAdoptionRequestsPageState
                     (r['status'] as String? ?? '').toLowerCase() == 'aprobada',
               )
               .toList();
+
+          print(
+            'Total: ${allRequests.length}, Pendientes: ${pendingRequests.length}, Aprobadas: ${approvedRequests.length}',
+          );
 
           return TabBarView(
             controller: _tabController,

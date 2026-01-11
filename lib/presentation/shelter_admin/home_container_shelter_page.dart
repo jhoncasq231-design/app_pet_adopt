@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'shelter_dashboard_page.dart';
-import '../adoption_requests/adoption_requests_page.dart';
+import '../shelter_admin/shelter_adoption_requests_page.dart';
+
 import '../profile/profile_page.dart';
 
 class HomeContainerShelterPage extends StatefulWidget {
@@ -15,11 +16,12 @@ class HomeContainerShelterPage extends StatefulWidget {
 class _HomeContainerShelterPageState extends State<HomeContainerShelterPage> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    ShelterDashboardPage(),
-    AdoptionRequestsPage(),
-    ProfilePage(),
-  ];
+final List<Widget> _pages = [
+  ShelterDashboardPage(),
+  ShelterAdoptionRequestsPage(),
+  ProfilePage(),
+];
+
 
   @override
   Widget build(BuildContext context) {

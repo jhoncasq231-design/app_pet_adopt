@@ -64,6 +64,8 @@ class _AdoptionRequestsPageState extends State<AdoptionRequestsPage>
         setState(() {
           _loadRequests();
         });
+        // Esperar a que se carguen los datos
+        await Future.delayed(const Duration(milliseconds: 500));
       },
       child: FutureBuilder<List<Map<String, dynamic>>>(
         future: requestsFuture,
