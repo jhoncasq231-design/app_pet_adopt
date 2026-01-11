@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/colors.dart';
 import '../../data/models/pet_model.dart';
+import '../../data/services/pet_service.dart';
 import '../pet_detail/pet_detail_page.dart';
 
 class HomeAdoptantPage extends StatefulWidget {
@@ -12,41 +13,23 @@ class HomeAdoptantPage extends StatefulWidget {
 
 class _HomeAdoptantPageState extends State<HomeAdoptantPage> {
   int _selectedCategory = 0;
+  Future<List<PetModel>>? _petsFuture;
 
-  final List<PetModel> pets = [
-    PetModel(
-      name: 'Luna',
-      breed: 'Labrador Retriever',
-      age: '2 años',
-      sex: 'Hembra',
-      size: 'Grande',
-      distance: '2.5 km',
-    ),
-    PetModel(
-      name: 'Michi',
-      breed: 'Persa',
-      age: '1 año',
-      sex: 'Macho',
-      size: 'Pequeño',
-      distance: '3.1 km',
-    ),
-    PetModel(
-      name: 'Rocky',
-      breed: 'Pastor Alemán',
-      age: '3 años',
-      sex: 'Macho',
-      size: 'Grande',
-      distance: '1.8 km',
-    ),
-    PetModel(
-      name: 'Nala',
-      breed: 'Siames',
-      age: '1 año',
-      sex: 'Hembra',
-      size: 'Mediano',
-      distance: '4.2 km',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _petsFuture = PetService().getAllPets();
+  }
+
+  List<PetModel> _filterPets(List<PetModel> pets) {
+    if (_selectedCategory == 1) {
+      return pets.where((p) => p.especie == 'Perro').toList();
+    }
+    if (_selectedCategory == 2) {
+      return pets.where((p) => p.especie == 'Gato').toList();
+    }
+    return pets;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,10 +43,7 @@ class _HomeAdoptantPageState extends State<HomeAdoptantPage> {
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Hola, Juan 👋',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
+            Text('Hola 👋', style: TextStyle(fontSize: 14, color: Colors.grey)),
             Text(
               'Encuentra tu mascota',
               style: TextStyle(
@@ -88,7 +68,7 @@ class _HomeAdoptantPageState extends State<HomeAdoptantPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🔍 SEARCH
+            // 🔍 SEARCH (visual, aún no filtra)
             TextField(
               decoration: InputDecoration(
                 hintText: 'Buscar mascota...',
@@ -130,32 +110,54 @@ class _HomeAdoptantPageState extends State<HomeAdoptantPage> {
 
             const SizedBox(height: 16),
 
-            // 🐾 PET GRID
+            // 🐾 PET GRID (SUPABASE)
             Expanded(
-              child: GridView.builder(
-                itemCount: pets.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 0.75,
-                ),
-                itemBuilder: (_, index) {
-                  final pet = pets[index];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PetDetailPage(pet: pet),
+              child: FutureBuilder<List<PetModel>>(
+                future: _petsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+
+                  final pets = _filterPets(snapshot.data ?? []);
+
+                  if (pets.isEmpty) {
+                    return const Center(
+                      child: Text('No hay mascotas disponibles'),
+                    );
+                  }
+
+                  return GridView.builder(
+                    itemCount: pets.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 0.75,
+                        ),
+                    itemBuilder: (_, index) {
+                      final pet = pets[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PetDetailPage(pet: pet),
+                            ),
+                          );
+                        },
+                        child: _PetCard(
+                          name: pet.name,
+                          breed: '${pet.breed} • ${pet.age}',
+                          distance: pet.distance,
                         ),
                       );
                     },
-                    child: _PetCard(
-                      name: pet.name,
-                      breed: '${pet.breed} • ${pet.age}',
-                      distance: pet.distance,
-                    ),
                   );
                 },
               ),
@@ -166,6 +168,8 @@ class _HomeAdoptantPageState extends State<HomeAdoptantPage> {
     );
   }
 }
+
+// ================= COMPONENTS =================
 
 class _CategoryChip extends StatelessWidget {
   final String label;
@@ -241,8 +245,7 @@ class _PetCard extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Icon(Icons.favorite_border,
-                        color: AppColors.primaryOrange),
+                    Icon(Icons.favorite_border, color: AppColors.primaryOrange),
                   ],
                 ),
                 const SizedBox(height: 4),

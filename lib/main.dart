@@ -7,11 +7,19 @@ import 'presentation/login/login_page.dart';
 import 'presentation/home/home_container_adoptant_page.dart';
 import 'presentation/shelter_admin/home_container_shelter_page.dart';
 
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: ".env");
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    // Si falta .env, intentar cargar desde .env-example
+    try {
+      await dotenv.load(fileName: ".env-example");
+    } catch (e2) {
+      print('Error cargando variables de entorno: $e2');
+    }
+  }
 
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
@@ -20,6 +28,7 @@ Future<void> main() async {
 
   runApp(const PetAdoptApp());
 }
+
 class PetAdoptApp extends StatelessWidget {
   const PetAdoptApp({super.key});
 

@@ -60,7 +60,7 @@ class _ShelterAdoptionRequestsPageState
     final userEmail = userData?['email'] ?? 'N/A';
     final userPhone = userData?['telefono'] ?? 'N/A';
     final userLocation = userData?['ubicacion'] ?? 'N/A';
-    final status = (request['estado'] as String? ?? 'pendiente').toLowerCase();
+    final status = (request['status'] as String? ?? 'pendiente').toLowerCase();
 
     showModalBottomSheet(
       context: context,
@@ -199,7 +199,7 @@ class _ShelterAdoptionRequestsPageState
           final userData = request['profiles'] as Map<String, dynamic>?;
           final petName = petData?['nombre'] ?? 'Mascota desconocida';
           final userName = userData?['nombre'] ?? 'Usuario desconocido';
-          final status = (request['estado'] as String? ?? 'pendiente')
+          final status = (request['status'] as String? ?? 'pendiente')
               .toLowerCase();
 
           return Card(
@@ -303,13 +303,13 @@ class _ShelterAdoptionRequestsPageState
           final pendingRequests = allRequests
               .where(
                 (r) =>
-                    (r['estado'] as String? ?? '').toLowerCase() == 'pendiente',
+                    (r['status'] as String? ?? '').toLowerCase() == 'pendiente',
               )
               .toList();
           final approvedRequests = allRequests
               .where(
                 (r) =>
-                    (r['estado'] as String? ?? '').toLowerCase() == 'aprobada',
+                    (r['status'] as String? ?? '').toLowerCase() == 'aprobada',
               )
               .toList();
 

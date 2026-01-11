@@ -4,19 +4,19 @@ import 'auth_service.dart';
 class AdoptionRequestService {
   SupabaseClient get _supabase => Supabase.instance.client;
 
-  /// Obtener todas las solicitudes del usuario actual
+  /// Obtener todas las solicitudes del user actual
   Future<List<Map<String, dynamic>>> getUserAdoptionRequests() async {
     try {
       final userId = AuthService.getCurrentUserId();
       if (userId == null) return [];
 
       final response = await _supabase
-          .from('solicitud_adopcion')
+          .from('adoptions')
           .select('''
             id,
-            usuario_id,
-            mascota_id,
-            estado,
+            user_id,
+            pet_id,
+            status,
             fecha_solicitud,
             fecha_aprobacion,
             pets (
@@ -24,14 +24,10 @@ class AdoptionRequestService {
               nombre,
               especie,
               foto_principal,
-              refugio_id,
-              shelters (
-                nombre,
-                telefono
-              )
+              refugio_id
             )
           ''')
-          .eq('usuario_id', userId)
+          .eq('user_id', userId)
           .order('fecha_solicitud', ascending: false);
 
       return List<Map<String, dynamic>>.from(response);
@@ -48,12 +44,12 @@ class AdoptionRequestService {
       if (userId == null) return [];
 
       final response = await _supabase
-          .from('solicitud_adopcion')
+          .from('adoptions')
           .select('''
             id,
-            usuario_id,
-            mascota_id,
-            estado,
+            user_id,
+            pet_id,
+            status,
             fecha_solicitud,
             fecha_aprobacion,
             profiles (
@@ -87,12 +83,12 @@ class AdoptionRequestService {
       if (userId == null) return [];
 
       final response = await _supabase
-          .from('solicitud_adopcion')
+          .from('adoptions')
           .select('''
             id,
-            usuario_id,
-            mascota_id,
-            estado,
+            user_id,
+            pet_id,
+            status,
             fecha_solicitud,
             fecha_aprobacion,
             pets (
@@ -100,14 +96,11 @@ class AdoptionRequestService {
               nombre,
               especie,
               foto_principal,
-              refugio_id,
-              shelters (
-                nombre
-              )
+              refugio_id
             )
           ''')
-          .eq('usuario_id', userId)
-          .eq('estado', status)
+          .eq('user_id', userId)
+          .eq('status', status)
           .order('fecha_solicitud', ascending: false);
 
       return List<Map<String, dynamic>>.from(response);
@@ -123,10 +116,10 @@ class AdoptionRequestService {
       final userId = AuthService.getCurrentUserId();
       if (userId == null) return false;
 
-      await _supabase.from('solicitud_adopcion').insert({
-        'usuario_id': userId,
-        'mascota_id': mascotaId,
-        'estado': 'pendiente',
+      await _supabase.from('adoptions').insert({
+        'user_id': userId,
+        'pet_id': mascotaId,
+        'status': 'pendiente',
         'fecha_solicitud': DateTime.now().toIso8601String(),
       });
 
@@ -141,9 +134,9 @@ class AdoptionRequestService {
   Future<bool> approveAdoptionRequest(String requestId) async {
     try {
       await _supabase
-          .from('solicitud_adopcion')
+          .from('adoptions')
           .update({
-            'estado': 'aprobada',
+            'status': 'aprobada',
             'fecha_aprobacion': DateTime.now().toIso8601String(),
           })
           .eq('id', requestId);
@@ -159,9 +152,9 @@ class AdoptionRequestService {
   Future<bool> rejectAdoptionRequest(String requestId) async {
     try {
       await _supabase
-          .from('solicitud_adopcion')
+          .from('adoptions')
           .update({
-            'estado': 'rechazada',
+            'status': 'rechazada',
             'fecha_aprobacion': DateTime.now().toIso8601String(),
           })
           .eq('id', requestId);
@@ -176,7 +169,7 @@ class AdoptionRequestService {
   /// Eliminar una solicitud de adopción
   Future<bool> deleteAdoptionRequest(String requestId) async {
     try {
-      await _supabase.from('solicitud_adopcion').delete().eq('id', requestId);
+      await _supabase.from('adoptions').delete().eq('id', requestId);
 
       return true;
     } catch (e) {
@@ -191,12 +184,12 @@ class AdoptionRequestService {
   ) async {
     try {
       final response = await _supabase
-          .from('solicitud_adopcion')
+          .from('adoptions')
           .select('''
             id,
-            usuario_id,
-            mascota_id,
-            estado,
+            user_id,
+            pet_id,
+            status,
             fecha_solicitud,
             fecha_aprobacion,
             profiles (

@@ -13,13 +13,58 @@ class PetService {
     try {
       final response = await _supabase
           .from('pets')
-          .select('*, shelter:shelters(nombre, telefono)')
-          .eq('estado', 'disponible')
+          .select()
           .order('created_at', ascending: false);
+
+      print('📱 Total mascotas obtenidas de Supabase: ${response.length}');
+
+      if (response.isEmpty) {
+        print('⚠️ No hay mascotas en la tabla pets de Supabase');
+      }
+
+      // Mostrar detalles de cada mascota
+      for (var i = 0; i < response.length; i++) {
+        final pet = response[i];
+        print(
+          '   [$i] ${pet['nombre']} - ID: ${pet['id']}, Especie: ${pet['especie']}, Estado: ${pet['estado']}',
+        );
+      }
+
+      final pets = response.map<PetModel>((e) {
+        try {
+          return PetModel.fromJson(e);
+        } catch (mapError) {
+          print('❌ Error al mapear mascota: ${e['nombre']} - $mapError');
+          rethrow;
+        }
+      }).toList();
+
+      print('✅ Mascotas mapeadas correctamente: ${pets.length}');
+      return pets;
+    } catch (e) {
+      print('❌ Error al obtener mascotas: $e');
+      return [];
+    }
+  }
+
+  /// Obtener todas las mascotas sin filtro (para desarrollo/debug)
+  Future<List<PetModel>> getAllPetsDebug() async {
+    try {
+      final response = await _supabase
+          .from('pets')
+          .select()
+          .order('created_at', ascending: false);
+
+      print('✅ Total mascotas en Supabase: ${response.length}');
+      for (var pet in response) {
+        print(
+          '   - ${pet['nombre']} (estado: ${pet['estado']}, especie: ${pet['especie']})',
+        );
+      }
 
       return response.map<PetModel>((e) => PetModel.fromJson(e)).toList();
     } catch (e) {
-      print('Error al obtener mascotas: $e');
+      print('❌ Error al obtener mascotas (debug): $e');
       return [];
     }
   }

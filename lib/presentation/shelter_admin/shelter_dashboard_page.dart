@@ -6,6 +6,7 @@ import '../../data/services/auth_service.dart';
 import '../../data/services/adoption_request_service.dart';
 import 'new_pet_form_page.dart';
 import '../pet_detail/pet_detail_page.dart';
+import 'shelter_adoption_requests_page.dart';
 
 class ShelterDashboardPage extends StatefulWidget {
   const ShelterDashboardPage({super.key});
@@ -156,7 +157,7 @@ class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
                         Expanded(
                           child: _StatCard(
                             value: recentRequests
-                                .where((r) => r['estado'] == 'pendiente')
+                                .where((r) => r['status'] == 'pendiente')
                                 .length
                                 .toString(),
                             label: 'Pendientes',
@@ -198,7 +199,13 @@ class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
                           ),
                           TextButton(
                             onPressed: () {
-                              // Navegar a todas las solicitudes
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const ShelterAdoptionRequestsPage(),
+                                ),
+                              );
                             },
                             child: const Text('Ver todas'),
                           ),
@@ -217,7 +224,7 @@ class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
                               request['profiles']?['nombre'] ??
                               'Usuario desconocido';
                           final status =
-                              (request['estado'] as String? ?? 'pendiente')
+                              (request['status'] as String? ?? 'pendiente')
                                   .toLowerCase();
 
                           return Container(

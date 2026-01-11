@@ -101,7 +101,7 @@ class _AdoptionRequestsPageState extends State<AdoptionRequestsPage>
               final request = requests[index];
               final pet = request['pets'] as Map<String, dynamic>?;
               final petName = pet?['nombre'] ?? 'Mascota desconocida';
-              final status = (request['estado'] as String? ?? 'pendiente')
+              final status = (request['status'] as String? ?? 'pendiente')
                   .toLowerCase();
               final requestDate = request['fecha_solicitud'] as String?;
 
