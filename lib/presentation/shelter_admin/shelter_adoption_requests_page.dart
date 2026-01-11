@@ -201,7 +201,7 @@ class _ShelterAdoptionRequestsPageState
           final userName = userData?['nombre'] ?? 'Usuario desconocido';
           final status = (request['status'] as String? ?? 'pendiente')
               .toLowerCase();
-
+          print('Solicitud completa: $request');
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
             shape: RoundedRectangleBorder(

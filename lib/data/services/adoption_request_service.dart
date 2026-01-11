@@ -1,3 +1,4 @@
+//app_pet_adopt\lib\data\services\adoption_request_service.dart
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_service.dart';
 
@@ -18,7 +19,14 @@ class AdoptionRequestService {
             pet_id,
             status,
             fecha_solicitud,
-            fecha_aprobacion,
+            fecha_respuesta, 
+            profiles:profiles!adoptions_user_id_fkey (
+              id,
+              nombre,
+              telefono,
+              ubicacion,
+              email
+            ),
             pets (
               id,
               nombre,
@@ -37,44 +45,44 @@ class AdoptionRequestService {
     }
   }
 
-  /// Obtener solicitudes para un refugio (para ver las solicitudes que recibió)
-  Future<List<Map<String, dynamic>>> getShelterAdoptionRequests() async {
-    try {
-      final userId = AuthService.getCurrentUserId();
-      if (userId == null) return [];
+  /// correcion opcion1
+  /// Obtener solicitudes recibidas por el refugio
+/// Obtener solicitudes recibidas por el refugio, con perfiles de usuarios
+Future<List<Map<String, dynamic>>> getShelterAdoptionRequests() async {
+  try {
+    final shelterProfileId = await AuthService.getShelterIdForCurrentUser();
+    if (shelterProfileId == null) return [];
 
-      final response = await _supabase
-          .from('adoptions')
-          .select('''
-            id,
-            user_id,
-            pet_id,
-            status,
-            fecha_solicitud,
-            fecha_aprobacion,
-            profiles (
-              nombre,
-              telefono,
-              ubicacion,
-              email
-            ),
-            pets (
-              id,
-              nombre,
-              especie,
-              foto_principal,
-              refugio_id
-            )
-          ''')
-          .eq('pets.refugio_id', userId)
-          .order('fecha_solicitud', ascending: false);
+    // Obtener IDs de las mascotas del refugio
+    final pets = await _supabase
+        .from('pets')
+        .select('id')
+        .eq('refugio_id', shelterProfileId);
 
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      print('Error al obtener solicitudes del refugio: $e');
-      return [];
-    }
+    final petIds = pets.map((p) => p['id']).toList();
+    if (petIds.isEmpty) return [];
+
+    // Obtener solicitudes de adopción
+    final response = await _supabase
+        .from('adoptions')
+        .select('id, user_id, pet_id, status, fecha_solicitud, fecha_respuesta, pets(id,nombre,especie,foto_principal,refugio_id)')
+        .inFilter('pet_id', petIds)
+        .order('fecha_solicitud', ascending: false);
+
+    // Añadir perfil de usuario a cada solicitud
+    final responseWithProfiles = await Future.wait(response.map((r) async {
+      final profile = await AuthService.getUserProfileById(r['user_id']);
+      r['profiles'] = profile;
+      return r;
+    }));
+
+    return responseWithProfiles;
+  } catch (e) {
+    print('Error al obtener solicitudes para refugio: $e');
+    return [];
   }
+}
+
 
   /// Obtener solicitudes filtradas por estado
   Future<List<Map<String, dynamic>>> getRequestsByStatus(String status) async {
@@ -90,7 +98,14 @@ class AdoptionRequestService {
             pet_id,
             status,
             fecha_solicitud,
-            fecha_aprobacion,
+            fecha_respuesta,
+            profiles:profiles!adoptions_user_id_fkey (
+              id,
+              nombre,
+              telefono,
+              ubicacion,
+              email
+            ),
             pets (
               id,
               nombre,
@@ -137,7 +152,7 @@ class AdoptionRequestService {
           .from('adoptions')
           .update({
             'status': 'aprobada',
-            'fecha_aprobacion': DateTime.now().toIso8601String(),
+            'fecha_respuesta': DateTime.now().toIso8601String(),
           })
           .eq('id', requestId);
 
@@ -155,7 +170,7 @@ class AdoptionRequestService {
           .from('adoptions')
           .update({
             'status': 'rechazada',
-            'fecha_aprobacion': DateTime.now().toIso8601String(),
+            'fecha_respuesta': DateTime.now().toIso8601String(),
           })
           .eq('id', requestId);
 
@@ -191,11 +206,13 @@ class AdoptionRequestService {
             pet_id,
             status,
             fecha_solicitud,
-            fecha_aprobacion,
-            profiles (
+            fecha_respuesta,
+            profiles:profiles!adoptions_user_id_fkey (
+              id,
               nombre,
               telefono,
-              ubicacion
+              ubicacion,
+              email
             ),
             pets (
               id,

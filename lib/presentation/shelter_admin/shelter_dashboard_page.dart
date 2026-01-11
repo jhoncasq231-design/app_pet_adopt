@@ -18,6 +18,7 @@ class ShelterDashboardPage extends StatefulWidget {
 class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
   final _petService = PetService();
   final _adoptionService = AdoptionRequestService();
+
   List<PetModel> shelterPets = [];
   List<Map<String, dynamic>> recentRequests = [];
   String shelterName = 'Mi Refugio';
@@ -42,6 +43,7 @@ class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
         return;
       }
 
+      // Cargar perfil del refugio
       final profile = await AuthService.getUserProfile();
       if (profile != null) {
         setState(() {
@@ -49,8 +51,19 @@ class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
         });
       }
 
+      // Obtener mascotas del refugio
       final pets = await _petService.getPetsByRefugioId(shelterId);
+
+      // Obtener solicitudes de adopción (incluyen perfiles)
       final requests = await _adoptionService.getShelterAdoptionRequests();
+      print('Solicitudes refugio obtenidas: ${requests.length}');
+      
+      // Debug: Verificar estructura de solicitudes
+      if (requests.isNotEmpty) {
+        print('Primera solicitud keys: ${requests[0].keys}');
+        print('Profiles en primera solicitud: ${requests[0]['profiles']}');
+      }
+
       setState(() {
         shelterPets = pets;
         recentRequests = requests.take(5).toList();
@@ -99,6 +112,7 @@ class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // HEADER
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 40, 20, 30),
                 decoration: BoxDecoration(
@@ -218,11 +232,18 @@ class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
                       child: Column(
                         children: recentRequests.map((request) {
                           final petName =
-                              request['pets']?['nombre'] ??
-                              'Mascota desconocida';
-                          final userName =
-                              request['profiles']?['nombre'] ??
-                              'Usuario desconocido';
+                              request['pets']?['nombre'] ?? 'Mascota desconocida';
+                          
+                          // Manejar perfiles correctamente
+                          final profileData = request['profiles'] as Map<String, dynamic>?;
+                          final userName = profileData?['nombre'] ?? 'Usuario desconocido';
+                          
+                          // Debug
+                          if (userName == 'Usuario desconocido') {
+                            print('DEBUG - Request: ${request.keys}');
+                            print('DEBUG - Profiles: $profileData');
+                          }
+
                           final status =
                               (request['status'] as String? ?? 'pendiente')
                                   .toLowerCase();
@@ -281,16 +302,12 @@ class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
                                 if (status == 'pendiente') ...[
                                   IconButton(
                                     icon: const Icon(Icons.check, size: 20),
-                                    onPressed: () {
-                                      // Aprobar solicitud
-                                    },
+                                    onPressed: () {},
                                     color: Colors.green,
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.close, size: 20),
-                                    onPressed: () {
-                                      // Rechazar solicitud
-                                    },
+                                    onPressed: () {},
                                     color: Colors.red,
                                   ),
                                 ] else
@@ -317,6 +334,7 @@ class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
                   ],
                 ),
 
+              // MASCOTAS DEL REFUGIO
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
@@ -390,6 +408,8 @@ class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
     );
   }
 }
+
+// --------------------- COMPONENTES AUXILIARES ---------------------
 
 class _StatCard extends StatelessWidget {
   final String value;
@@ -546,7 +566,6 @@ class _PetItem extends StatelessWidget {
               );
             },
           ),
-
           IconButton(
             icon: const Icon(Icons.edit, size: 20),
             onPressed: () async {
@@ -555,10 +574,8 @@ class _PetItem extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => NewPetFormPage(pet: pet)),
               );
               if (result == true) {
-                // Refrescar la lista después de editar
-                // Notificar al padre (ShelterDashboardPage) para refrescar
-                final shelterState = context
-                    .findAncestorStateOfType<_ShelterDashboardPageState>();
+                final shelterState =
+                    context.findAncestorStateOfType<_ShelterDashboardPageState>();
                 shelterState?._refreshData();
               }
             },

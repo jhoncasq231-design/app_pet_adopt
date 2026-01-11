@@ -217,6 +217,20 @@ class AuthService {
       return false;
     }
   }
+  /// Obtener perfil de usuario por ID
+static Future<Map<String, dynamic>?> getUserProfileById(String userId) async {
+  try {
+    final response = await _supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle(); // <- aquí
+    return response;
+  } catch (e) {
+    print('Error al obtener perfil de usuario $userId: $e');
+    return null;
+  }
+}
 
   /// Carga el usuario actual desde Supabase
   static Future<void> _loadCurrentUser() async {
