@@ -10,20 +10,18 @@ import 'presentation/shelter_admin/home_container_shelter_page.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Cargar variables de entorno
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
-    // Si falta .env, intentar cargar desde .env-example
-    try {
-      await dotenv.load(fileName: ".env-example");
-    } catch (e2) {
-      print('Error cargando variables de entorno: $e2');
-    }
+    // Si no existe .env, intentar con .env-example
+    await dotenv.load(fileName: ".env-example");
   }
 
+  // Inicializar Supabase
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    url: dotenv.env['SUPABASE_URL'] ?? '',
+    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   );
 
   runApp(const PetAdoptApp());

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models/pet_model.dart';
+import '../ai_chat/ai_chat_page.dart';
 import '../login/login_page.dart';
 import '../login/registro_page.dart';
 import '../login/role_selection_page.dart';
+import '../login/role_selection_google_page.dart';
 import '../login/forgot_password_page.dart';
 import '../home/home_adoptant_page.dart';
 import '../home/home_container_adoptant_page.dart';
 import '../shelter_admin/home_container_shelter_page.dart';
-import '../ai_chat/ai_chat_page.dart';
 import '../map/map_page.dart';
 import '../adoption_requests/adoption_requests_page.dart';
 import '../pet_detail/pet_detail_page.dart';
-import '../login/role_selection_google_page.dart';
 import '../shelter_admin/shelter_adoption_requests_page.dart';
 
 class AppRoutes {
@@ -40,10 +40,13 @@ class AppRoutes {
     homeAdoptant: (_) => const HomeContainerAdoptantPage(),
     homeShelter: (_) => const HomeContainerShelterPage(),
     home: (_) => const HomeAdoptantPage(),
+
+    // 🔹 Chat (el BlocProvider está dentro de AiChatPage)
     chat: (_) => const AiChatPage(),
+
     map: (_) => const MapPage(),
     requests: (_) => const AdoptionRequestsPage(),
-    shelterRequests: (_) => const ShelterAdoptionRequestsPage(), // shelter
+    shelterRequests: (_) => const ShelterAdoptionRequestsPage(),
     petDetail: (context) {
       final pet = ModalRoute.of(context)?.settings.arguments as PetModel?;
       return PetDetailPage(pet: pet ?? PetModel.empty());
