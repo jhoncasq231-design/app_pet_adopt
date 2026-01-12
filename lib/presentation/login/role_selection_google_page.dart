@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/colors.dart';
 import '../../data/services/google_auth_service.dart';
+import '../routes/app_routes.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RoleSelectionGooglePage extends StatefulWidget {
   const RoleSelectionGooglePage({super.key});
@@ -13,13 +15,12 @@ class RoleSelectionGooglePage extends StatefulWidget {
 class _RoleSelectionGooglePageState extends State<RoleSelectionGooglePage> {
   bool _isLoading = false;
 
-  Future<void> _signInWithGoogle(String rol) async {
+  // Solo inicia sesión con Google, sin rol
+  Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
-
     try {
-      // Inicia el flujo OAuth Web de Supabase
-      await GoogleAuthService.signInWithGoogle(rol: rol);
-      // La redirección y navegación se maneja en onAuthStateChange del main.dart
+      await GoogleAuthService.signInWithGoogle();
+      // La navegación se maneja en main.dart -> _InitialRoutePage
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -27,6 +28,43 @@ class _RoleSelectionGooglePageState extends State<RoleSelectionGooglePage> {
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // Selección de rol después de iniciar sesión
+  Future<void> _selectRole(String rol) async {
+    setState(() => _isLoading = true);
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: usuario no autenticado')),
+      );
+      return;
+    }
+
+    try {
+      // Upsert: crea o actualiza el rol si falta
+      await Supabase.instance.client.from('profiles').upsert({
+        'id': user.id,
+        'email': user.email,
+        'rol': rol,
+        'nombre': user.email?.split('@')[0],
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      // Redirige al dashboard según rol
+      Navigator.pushReplacementNamed(
+        context,
+        rol == 'adoptante' ? AppRoutes.homeAdoptant : AppRoutes.homeShelter,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error creando perfil: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -54,7 +92,7 @@ class _RoleSelectionGooglePageState extends State<RoleSelectionGooglePage> {
               description: 'Buscar y adoptar mascotas',
               icon: Icons.favorite_outline,
               color: AppColors.primaryOrange,
-              onTap: _isLoading ? null : () => _signInWithGoogle('adoptante'),
+              onTap: _isLoading ? null : () => _selectRole('adoptante'),
             ),
             const SizedBox(height: 20),
             _RoleCard(
@@ -62,7 +100,7 @@ class _RoleSelectionGooglePageState extends State<RoleSelectionGooglePage> {
               description: 'Gestionar mascotas y adopciones',
               icon: Icons.home_work_outlined,
               color: AppColors.primaryTeal,
-              onTap: _isLoading ? null : () => _signInWithGoogle('refugio'),
+              onTap: _isLoading ? null : () => _selectRole('refugio'),
             ),
             if (_isLoading) ...[
               const SizedBox(height: 30),

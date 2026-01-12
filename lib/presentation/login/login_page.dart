@@ -4,6 +4,7 @@ import '../../data/services/auth_service.dart';
 import '../routes/app_routes.dart';
 import 'forgot_password_page.dart';
 import "role_selection_google_page.dart";
+import '../../data/services/google_auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -307,15 +308,18 @@ class _LoginPageState extends State<LoginPage> {
                   OutlinedButton.icon(
                     onPressed: _isLoading
                         ? null
-                        : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const RoleSelectionGooglePage(),
-                              ),
-                            );
+                        : () async {
+                            setState(() => _isLoading = true);
+                            try {
+                              await GoogleAuthService.signInWithGoogle();
+                            } catch (e) {
+                              setState(() {
+                                _errorMessage = 'Error al iniciar con Google';
+                              });
+                            }
+                            if (!mounted) return;
+                            setState(() => _isLoading = false);
                           },
-
                     icon: Icon(
                       Icons.g_mobiledata,
                       size: 28,
@@ -339,7 +343,6 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 30),
 
                   // REGISTRO

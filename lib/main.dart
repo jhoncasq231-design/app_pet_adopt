@@ -6,7 +6,7 @@ import 'presentation/routes/app_routes.dart';
 import 'presentation/login/login_page.dart';
 import 'presentation/home/home_container_adoptant_page.dart';
 import 'presentation/shelter_admin/home_container_shelter_page.dart';
-import 'presentation/login/role_selection_google_page.dart'; // Asegúrate de crear este page
+import 'presentation/login/role_selection_google_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,65 +62,81 @@ class _InitialRoutePageState extends State<_InitialRoutePage> {
     _checkAuthState();
   }
 
-  // Escucha cambios de sesión para manejar OAuth Web
+  // 🔹 Escucha cambios de sesión (para OAuth Web)
   void _subscribeAuthChanges() {
     supabase.auth.onAuthStateChange.listen((event) async {
       final session = event.session;
-      if (session == null) return;
+      if (!mounted || session == null) return;
 
-      final userId = session.user.id;
+      try {
+        final profile = await supabase
+            .from('profiles')
+            .select('rol')
+            .eq('id', session.user.id)
+            .maybeSingle();
 
-      final profile = await supabase
-          .from('profiles')
-          .select('rol')
-          .eq('id', userId)
-          .maybeSingle();
+        if (!mounted) return;
 
-      if (!mounted) return;
-
-      if (profile == null) {
-        Navigator.of(context).pushReplacementNamed('/select-role');
-      } else {
-        final userRole = profile['rol'];
-        if (userRole == 'adoptante') {
-          Navigator.of(context).pushReplacementNamed('/home-adoptant');
+        if (profile == null) {
+          // Usuario autenticado pero sin perfil → seleccionar rol
+          Navigator.of(
+            context,
+          ).pushReplacementNamed(AppRoutes.roleSelectionGoogle);
         } else {
-          Navigator.of(context).pushReplacementNamed('/home-shelter');
+          final userRole = profile['rol'];
+          if (userRole == 'adoptante') {
+            Navigator.of(context).pushReplacementNamed(AppRoutes.homeAdoptant);
+          } else {
+            Navigator.of(context).pushReplacementNamed(AppRoutes.homeShelter);
+          }
         }
+      } catch (e) {
+        print('Error obteniendo perfil: $e');
       }
     });
   }
 
-  // Verifica sesión al inicio
+  // 🔹 Verifica sesión al inicio antes de mostrar RoleSelectionGooglePage
   Future<void> _checkAuthState() async {
     await Future.delayed(const Duration(milliseconds: 100));
     if (!mounted) return;
 
     final session = supabase.auth.currentSession;
 
-    if (session != null) {
-      final userId = session.user.id;
+    if (session == null) {
+      // ⚠ Usuario NO autenticado → ir a login
+      Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+      return;
+    }
 
+    try {
       final profile = await supabase
           .from('profiles')
           .select('rol')
-          .eq('id', userId)
+          .eq('id', session.user.id)
           .maybeSingle();
 
       if (!mounted) return;
 
       if (profile == null) {
-        Navigator.of(context).pushReplacementNamed('/select-role');
+        // Usuario autenticado pero sin perfil → mostrar RoleSelectionGooglePage
+        Navigator.of(
+          context,
+        ).pushReplacementNamed(AppRoutes.roleSelectionGoogle);
       } else {
+        // Usuario ya tiene rol → dashboard según rol
         final userRole = profile['rol'];
-        if (userRole == 'adoptante') {
-          Navigator.of(context).pushReplacementNamed('/home-adoptant');
-        } else {
-          Navigator.of(context).pushReplacementNamed('/home-shelter');
-        }
+        Navigator.of(context).pushReplacementNamed(
+          userRole == 'refugio'
+              ? AppRoutes.homeShelter
+              : AppRoutes.homeAdoptant,
+        );
       }
-    } else {
-      Navigator.of(context).pushReplacementNamed('/login');
+    } catch (e) {
+      print('Error verificando perfil: $e');
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+      }
     }
   }
 
