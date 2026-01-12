@@ -45,7 +45,12 @@ dependencies:
   http: ^1.1.0
   equatable: ^2.0.5
   flutter_markdown: ^0.6.10
-  
+
+  #dependencias para integracion de geolocalizacion y mapas
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
+  geolocator: ^10.1.0
+  geocoding: ^2.1.1
   # OAuth con Google
   google_sign_in: ^6.1.6
   
