@@ -57,7 +57,7 @@ class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
       // Obtener solicitudes de adopción (incluyen perfiles)
       final requests = await _adoptionService.getShelterAdoptionRequests();
       print('Solicitudes refugio obtenidas: ${requests.length}');
-      
+
       // Debug: Verificar estructura de solicitudes
       if (requests.isNotEmpty) {
         print('Primera solicitud keys: ${requests[0].keys}');
@@ -171,20 +171,34 @@ class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
                         Expanded(
                           child: _StatCard(
                             value: recentRequests
-                                .where((r) => r['status'] == 'pendiente')
+                                .where(
+                                  (r) =>
+                                      (r['status'] ?? '')
+                                          .toString()
+                                          .toLowerCase() ==
+                                      'aprobada',
+                                )
                                 .length
                                 .toString(),
-                            label: 'Pendientes',
+
+                            label: 'Aprobadas',
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: _StatCard(
                             value: shelterPets
-                                .where((p) => p.estado == 'adoptado')
+                                .where(
+                                  (p) =>
+                                      p.estado.toLowerCase().trim() ==
+                                          'adoptado' ||
+                                      p.estado.toLowerCase().trim() ==
+                                          'adoptada',
+                                )
                                 .length
                                 .toString(),
-                            label: 'Adoptadas',
+
+                            label: 'Pendientes',
                           ),
                         ),
                       ],
@@ -232,12 +246,15 @@ class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
                       child: Column(
                         children: recentRequests.map((request) {
                           final petName =
-                              request['pets']?['nombre'] ?? 'Mascota desconocida';
-                          
+                              request['pets']?['nombre'] ??
+                              'Mascota desconocida';
+
                           // Manejar perfiles correctamente
-                          final profileData = request['profiles'] as Map<String, dynamic>?;
-                          final userName = profileData?['nombre'] ?? 'Usuario desconocido';
-                          
+                          final profileData =
+                              request['profiles'] as Map<String, dynamic>?;
+                          final userName =
+                              profileData?['nombre'] ?? 'Usuario desconocido';
+
                           // Debug
                           if (userName == 'Usuario desconocido') {
                             print('DEBUG - Request: ${request.keys}');
@@ -302,9 +319,29 @@ class _ShelterDashboardPageState extends State<ShelterDashboardPage> {
                                 if (status == 'pendiente') ...[
                                   IconButton(
                                     icon: const Icon(Icons.check, size: 20),
-                                    onPressed: () {},
                                     color: Colors.green,
+                                    onPressed: () async {
+                                      final success = await _adoptionService
+                                          .approveAdoptionRequest(
+                                            request['id'],
+                                          );
+
+                                      if (success) {
+                                        _refreshData();
+                                      } else {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'No se pudo aprobar la solicitud',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
                                   ),
+
                                   IconButton(
                                     icon: const Icon(Icons.close, size: 20),
                                     onPressed: () {},
@@ -574,8 +611,8 @@ class _PetItem extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => NewPetFormPage(pet: pet)),
               );
               if (result == true) {
-                final shelterState =
-                    context.findAncestorStateOfType<_ShelterDashboardPageState>();
+                final shelterState = context
+                    .findAncestorStateOfType<_ShelterDashboardPageState>();
                 shelterState?._refreshData();
               }
             },

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'shelter_dashboard_page.dart';
 import '../shelter_admin/shelter_adoption_requests_page.dart';
-
+import '../shelter_admin/favorites/shelter_favorites_page.dart';
 import '../profile/refugio_profile_page.dart';
 
 class HomeContainerShelterPage extends StatefulWidget {
@@ -19,9 +19,10 @@ class _HomeContainerShelterPageState extends State<HomeContainerShelterPage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> _pages = [
-      ShelterDashboardPage(),
-      ShelterAdoptionRequestsPage(),
-      RefugioProfilePage(),
+      const ShelterDashboardPage(),
+      const ShelterFavoritesPage(), // ❤️ NUEVO
+      const ShelterAdoptionRequestsPage(),
+      const RefugioProfilePage(),
     ];
 
     return Scaffold(
@@ -31,10 +32,15 @@ class _HomeContainerShelterPageState extends State<HomeContainerShelterPage> {
         onTap: (index) => setState(() => _currentIndex = index),
         selectedItemColor: Colors.teal,
         unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             label: 'Inicio',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite_border),
+            label: 'Favoritos',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.assignment),

@@ -48,44 +48,31 @@ class AdoptionRequestService {
   /// correcion opcion1
   /// Obtener solicitudes recibidas por el refugio
   /// Obtener solicitudes recibidas por el refugio, con perfiles de usuarios
-  Future<List<Map<String, dynamic>>> getShelterAdoptionRequests() async {
-    try {
-      final shelterProfileId = await AuthService.getShelterIdForCurrentUser();
-      if (shelterProfileId == null) return [];
+ Future<List<Map<String, dynamic>>> getShelterAdoptionRequests() async {
+  try {
+    final shelterProfileId = await AuthService.getShelterIdForCurrentUser();
+    if (shelterProfileId == null) return [];
 
-      // Obtener IDs de las mascotas del refugio
-      final pets = await _supabase
-          .from('pets')
-          .select('id')
-          .eq('refugio_id', shelterProfileId);
+    final pets = await _supabase
+        .from('pets')
+        .select('id')
+        .eq('refugio_id', shelterProfileId);
 
-      final petIds = pets.map((p) => p['id']).toList();
-      if (petIds.isEmpty) return [];
+    final petIds = pets.map((p) => p['id']).toList();
+    if (petIds.isEmpty) return [];
 
-      // Obtener solicitudes de adopción
-      final response = await _supabase
-          .from('adoptions')
-          .select(
-            'id, user_id, pet_id, status, fecha_solicitud, fecha_respuesta, pets(id,nombre,especie,foto_principal,refugio_id)',
-          )
-          .inFilter('pet_id', petIds)
-          .order('fecha_solicitud', ascending: false);
+    final response = await _supabase
+        .from('adoptions')
+        .select('id, status, pet_id, user_id, fecha_solicitud, fecha_respuesta')
+        .inFilter('pet_id', petIds)
+        .order('fecha_solicitud', ascending: false);
 
-      // Añadir perfil de usuario a cada solicitud
-      final responseWithProfiles = await Future.wait(
-        response.map((r) async {
-          final profile = await AuthService.getUserProfileById(r['user_id']);
-          r['profiles'] = profile;
-          return r;
-        }),
-      );
-
-      return responseWithProfiles;
-    } catch (e) {
-      print('Error al obtener solicitudes para refugio: $e');
-      return [];
-    }
+    return List<Map<String, dynamic>>.from(response);
+  } catch (e) {
+    print('Error refugio solicitudes: $e');
+    return [];
   }
+}
 
   /// Obtener solicitudes filtradas por estado
   Future<List<Map<String, dynamic>>> getRequestsByStatus(String status) async {
@@ -149,53 +136,54 @@ class AdoptionRequestService {
   }
 
   /// Aprobar una solicitud de adopción (para refugios)
-  Future<bool> approveAdoptionRequest(String requestId) async {
-    try {
-      // Limpiar espacios invisibles
-      final cleanId = requestId.trim();
-      print('DEBUG: Aprobando solicitud con ID: "$cleanId"');
+Future<bool> approveAdoptionRequest(String requestId) async {
+  try {
+    final cleanId = requestId.trim();
+    print('DEBUG: Aprobando solicitud con ID: "$cleanId"');
 
-      // Primero verificar que el registro existe
-      final existingRecord = await _supabase
-          .from('adoptions')
-          .select('id, status')
-          .eq('id', cleanId)
-          .maybeSingle();
+    // 1️⃣ Obtener solicitud (para saber pet_id)
+    final request = await _supabase
+        .from('adoptions')
+        .select('id, pet_id, status')
+        .eq('id', cleanId)
+        .maybeSingle();
 
-      if (existingRecord == null) {
-        print('ERROR: No se encontró solicitud con ID: $cleanId');
-        return false;
-      }
-
-      print(
-        'DEBUG: Registro encontrado. Status actual: ${existingRecord['status']}',
-      );
-
-      // Ahora actualizar usando .select() para confirmar
-      final updatedRecord = await _supabase
-          .from('adoptions')
-          .update({
-            'status': 'aprobada',
-            'fecha_respuesta': DateTime.now().toIso8601String(),
-          })
-          .eq('id', cleanId)
-          .select('id, status, fecha_respuesta');
-
-      print('DEBUG: Registro actualizado: $updatedRecord');
-
-      // Verificar que realmente cambió
-      if (updatedRecord.isNotEmpty) {
-        final updated = updatedRecord[0];
-        print('DEBUG: Nuevo status: ${updated['status']}');
-        return updated['status'] == 'aprobada';
-      }
-
-      return false;
-    } catch (e) {
-      print('Error al aprobar solicitud: $e');
+    if (request == null) {
+      print('ERROR: Solicitud no encontrada');
       return false;
     }
+
+    final petId = request['pet_id'];
+
+    // 2️⃣ Aprobar solicitud
+    await _supabase.from('adoptions').update({
+      'status': 'aprobada',
+      'fecha_respuesta': DateTime.now().toIso8601String(),
+    }).eq('id', cleanId);
+
+    // 3️⃣ Marcar mascota como adoptada
+    await _supabase.from('pets').update({
+      'estado': 'adoptado',
+    }).eq('id', petId);
+
+    // 4️⃣ Rechazar otras solicitudes de esa mascota
+    await _supabase
+        .from('adoptions')
+        .update({
+          'status': 'rechazada',
+          'fecha_respuesta': DateTime.now().toIso8601String(),
+        })
+        .eq('pet_id', petId)
+        .neq('id', cleanId);
+
+    print('DEBUG: Solicitud aprobada y mascota adoptada');
+    return true;
+  } catch (e) {
+    print('Error al aprobar solicitud: $e');
+    return false;
   }
+}
+
 
   /// Rechazar una solicitud de adopción (para refugios)
   Future<bool> rejectAdoptionRequest(String requestId) async {
