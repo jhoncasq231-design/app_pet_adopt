@@ -1,3 +1,6 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../data/services/auth_service.dart';
+
 // Servicio de sesión (mock sin SharedPreferences por ahora)
 class SessionService {
   static String? _userRole;
@@ -21,6 +24,20 @@ class SessionService {
 
   // Cerrar sesión
   static Future<void> logout() async {
+    try {
+      // Cerrar sesión en AuthService (que también limpia _currentUser)
+      await AuthService.logout();
+    } catch (e) {
+      print('Error cerrando sesión en AuthService: $e');
+      try {
+        // Si AuthService falla, intentar cerrar en Supabase directamente
+        await Supabase.instance.client.auth.signOut();
+      } catch (e2) {
+        print('Error cerrando sesión en Supabase: $e2');
+      }
+    }
+
+    // Limpiar variables locales de SessionService
     _userRole = null;
     _isLoggedIn = false;
   }

@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Importante
+import 'package:geocoding/geocoding.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/shelter.dart';
 
 class MapPage extends StatefulWidget {
-  const MapPage({super.key});
+  final bool isPicker;
+
+  const MapPage({super.key, this.isPicker = false});
 
   @override
   State<MapPage> createState() => _MapPageState();
@@ -16,8 +19,10 @@ class _MapPageState extends State<MapPage> {
   final MapController _mapController = MapController();
   final SupabaseClient supabase = Supabase.instance.client;
 
-  List<Shelter> _sheltersFromDb = []; // Lista para los datos de Supabase
+  List<Shelter> _sheltersFromDb = [];
   LatLng? _userLocation;
+  LatLng? _pickedLocation;
+  String? _pickedLocationName;
   bool _isLoading = true;
 
   @override
@@ -26,18 +31,36 @@ class _MapPageState extends State<MapPage> {
     _fetchSheltersAndLocation();
   }
 
-  // 1. CARGAR DATOS DE SUPABASE Y UBICACIÓN
   Future<void> _fetchSheltersAndLocation() async {
     try {
-      // Obtener refugios de Supabase
-      final response = await supabase.from('shelters').select('id, nombre, direccion, lat, long');
-      
-      // Obtener ubicación GPS
-      Position position = await Geolocator.getCurrentPosition();
-      
+      // Solicitar permisos de ubicación primero
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Permisos de ubicación denegados');
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Permisos de ubicación denegados permanentemente');
+      }
+
+      // Solo cargamos refugios si NO estamos eligiendo una ubicación nueva
+      if (!widget.isPicker) {
+        final response = await supabase
+            .from('shelters')
+            .select('id, nombre, direccion, lat, long');
+        _sheltersFromDb = (response as List)
+            .map((s) => Shelter.fromMap(s))
+            .toList();
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
       if (mounted) {
         setState(() {
-          _sheltersFromDb = (response as List).map((s) => Shelter.fromMap(s)).toList();
           _userLocation = LatLng(position.latitude, position.longitude);
           _isLoading = false;
         });
@@ -45,65 +68,208 @@ class _MapPageState extends State<MapPage> {
       }
     } catch (e) {
       debugPrint("Error: $e");
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
-  // 2. CÁLCULO DE DISTANCIA
-  String _getDistance(double lat, double long) {
-    if (_userLocation == null) return "...";
-    double meters = Geolocator.distanceBetween(
-      _userLocation!.latitude, _userLocation!.longitude, lat, long);
-    return meters < 1000 ? "${meters.toStringAsFixed(0)}m" : "${(meters/1000).toStringAsFixed(1)}km";
+  Future<void> _getLocationName(LatLng location) async {
+    try {
+      print(
+        '🔍 Haciendo reverse geocoding para: ${location.latitude}, ${location.longitude}',
+      );
+      final placemarks = await placemarkFromCoordinates(
+        location.latitude,
+        location.longitude,
+      );
+
+      print('📍 Placemarks encontrados: ${placemarks.length}');
+
+      if (placemarks.isNotEmpty) {
+        final placemark = placemarks.first;
+        final locationName = [
+          placemark.street,
+          placemark.subLocality,
+          placemark.locality,
+        ].where((e) => e != null && e.isNotEmpty).join(', ');
+
+        if (mounted) {
+          setState(() => _pickedLocationName = locationName);
+        }
+        print('✅ Ubicación determinada: $locationName');
+      } else {
+        print('⚠️ No se encontraron placemarks para estas coordenadas');
+        setState(() => _pickedLocationName = 'Ubicación desconocida');
+      }
+    } catch (e) {
+      print('❌ Error en reverse geocoding: $e');
+      setState(() => _pickedLocationName = 'Ubicación desconocida');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: widget.isPicker
+          ? AppBar(
+              title: const Text("Selecciona ubicación"),
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+            )
+          : null,
       body: Stack(
         children: [
-          // MAPA
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
               initialCenter: const LatLng(-0.1806, -78.4678),
               initialZoom: 13.0,
+              onTap: (tapPosition, point) {
+                if (widget.isPicker) {
+                  print('🖱️  UBICACIÓN SELECCIONADA EN MAPA:');
+                  print('   Latitud: ${point.latitude}');
+                  print('   Longitud: ${point.longitude}');
+                  setState(() {
+                    _pickedLocation = point;
+                    _pickedLocationName = null;
+                  });
+                  _getLocationName(point);
+                }
+              },
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.app',
+                urlTemplate:
+                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                subdomains: const ['a', 'b', 'c'],
+                userAgentPackageName: 'com.petadopt.app',
               ),
               MarkerLayer(
                 markers: [
-                  // Mi ubicación
+                  // Mi ubicación actual (punto azul)
                   if (_userLocation != null)
                     Marker(
                       point: _userLocation!,
-                      child: const Icon(Icons.person_pin_circle, color: Colors.blue, size: 40),
+                      child: const Icon(
+                        Icons.person_pin_circle,
+                        color: Colors.blue,
+                        size: 40,
+                      ),
                     ),
-                  // MARCADORES DINÁMICOS DESDE SUPABASE
-                  ..._sheltersFromDb.map((shelter) => Marker(
-                    point: LatLng(shelter.lat, shelter.long),
-                    child: GestureDetector(
-                      onTap: () => _showShelterInfo(shelter),
-                      child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+
+                  // Modo Picker: Marcador de selección (naranja)
+                  if (widget.isPicker && _pickedLocation != null)
+                    Marker(
+                      point: _pickedLocation!,
+                      child: const Icon(
+                        Icons.location_on,
+                        color: Colors.orange,
+                        size: 50,
+                      ),
                     ),
-                  )).toList(),
+
+                  // Modo Visualización: Refugios de la DB
+                  if (!widget.isPicker)
+                    ..._sheltersFromDb
+                        .map(
+                          (shelter) => Marker(
+                            point: LatLng(shelter.lat, shelter.long),
+                            child: GestureDetector(
+                              onTap: () => _showShelterInfo(shelter),
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Colors.red,
+                                size: 40,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
                 ],
               ),
             ],
           ),
 
-          // Indicador de carga
           if (_isLoading)
-            const Center(child: CircularProgressIndicator(color: Colors.orange)),
+            const Center(
+              child: CircularProgressIndicator(color: Colors.orange),
+            ),
 
-          // Buscador (Diseño previo)
-          Positioned(
-            top: 50, left: 20, right: 20,
-            child: _buildSearchBar(),
-          ),
+          // Buscador (solo si no es picker)
+          if (!widget.isPicker)
+            Positioned(top: 50, left: 20, right: 20, child: _buildSearchBar()),
+
+          // Botón de confirmar selección
+          if (widget.isPicker && _pickedLocation != null)
+            Positioned(
+              bottom: 40,
+              left: 50,
+              right: 50,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_pickedLocationName != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 15,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black26, blurRadius: 5),
+                        ],
+                      ),
+                      child: Text(
+                        _pickedLocationName!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _pickedLocation != null
+                          ? Colors.orange
+                          : Colors.grey,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    onPressed: _pickedLocation == null
+                        ? null
+                        : () {
+                            print('✅ CONFIRMANDO UBICACIÓN DESDE MAPA:');
+                            print('   Lat: ${_pickedLocation!.latitude}');
+                            print('   Lng: ${_pickedLocation!.longitude}');
+                            print('   Nombre: $_pickedLocationName');
+                            Navigator.pop(context, {
+                              'lat': _pickedLocation!.latitude,
+                              'lng': _pickedLocation!.longitude,
+                              'locationName':
+                                  _pickedLocationName ??
+                                  'Ubicación desconocida',
+                            });
+                          },
+                    child: const Text(
+                      "Confirmar Ubicación",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -113,7 +279,8 @@ class _MapPageState extends State<MapPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(30),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
         boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10)],
       ),
       child: const TextField(
@@ -129,32 +296,64 @@ class _MapPageState extends State<MapPage> {
   void _showShelterInfo(Shelter shelter) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
       builder: (context) => Container(
         padding: const EdgeInsets.all(25),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(shelter.nombre, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            Text(
+              shelter.nombre,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 5),
-            Text(shelter.direccion ?? "Sin dirección", style: const TextStyle(color: Colors.grey)),
+            Text(
+              shelter.direccion ?? "Sin dirección",
+              style: const TextStyle(color: Colors.grey),
+            ),
             const Divider(height: 30),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Cercanía: ${_getDistance(shelter.lat, shelter.long)}", 
-                  style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                Text(
+                  "Cercanía: ${_getDistance(shelter.lat, shelter.long)}",
+                  style: const TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 ElevatedButton(
                   onPressed: () {},
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                  child: const Text("Ver Refugio", style: TextStyle(color: Colors.white)),
-                )
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                  ),
+                  child: const Text(
+                    "Ver Refugio",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
               ],
-            )
+            ),
           ],
         ),
       ),
     );
+  }
+
+  String _getDistance(double shelterLat, double shelterLng) {
+    if (_userLocation == null) return "Calculando...";
+
+    final distance = Geolocator.distanceBetween(
+      _userLocation!.latitude,
+      _userLocation!.longitude,
+      shelterLat,
+      shelterLng,
+    );
+
+    final distanceInKm = distance / 1000;
+    return "${distanceInKm.toStringAsFixed(2)} km";
   }
 }

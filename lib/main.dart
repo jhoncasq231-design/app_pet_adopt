@@ -60,7 +60,8 @@ class _InitialRoutePageState extends State<_InitialRoutePage> {
   }
 
   Future<void> _checkAuthState() async {
-    await Future.delayed(Duration.zero);
+    // Esperar un frame para asegurar que el widget está montado
+    await Future.delayed(const Duration(milliseconds: 100));
     if (!mounted) return;
 
     final supabase = Supabase.instance.client;
@@ -71,40 +72,41 @@ class _InitialRoutePageState extends State<_InitialRoutePage> {
       if (session != null) {
         final userId = session.user.id;
 
-        final response = await supabase
-            .from('profiles')
-            .select('rol')
-            .eq('id', userId)
-            .single();
+        try {
+          final response = await supabase
+              .from('profiles')
+              .select('rol')
+              .eq('id', userId)
+              .single();
 
-        final userRole = response['rol'];
+          final userRole = response['rol'];
 
-        if (!mounted) return;
+          if (!mounted) return;
 
-        if (userRole == 'adoptante') {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const HomeContainerAdoptantPage(),
-            ),
-          );
-        } else if (userRole == 'refugio') {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeContainerShelterPage()),
-          );
-        } else {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const LoginPage()),
-          );
+          if (userRole == 'adoptante') {
+            Navigator.of(context).pushReplacementNamed('/home-adoptant');
+          } else if (userRole == 'refugio') {
+            Navigator.of(context).pushReplacementNamed('/home-shelter');
+          } else {
+            Navigator.of(context).pushReplacementNamed('/login');
+          }
+        } catch (e) {
+          print('Error obteniendo rol del usuario: $e');
+          if (mounted) {
+            Navigator.of(context).pushReplacementNamed('/login');
+          }
         }
       } else {
-        Navigator.of(
-          context,
-        ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginPage()));
+        // Sin sesión, ir a login
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed('/login');
+        }
       }
     } catch (e) {
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginPage()));
+      print('Error verificando autenticación: $e');
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
     }
   }
 

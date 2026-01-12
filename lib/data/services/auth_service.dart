@@ -45,7 +45,6 @@ class AuthService {
     required String confirmPassword,
     required String role,
     String? nombre,
-    String? ubicacion,
     String? telefono,
   }) async {
     try {
@@ -72,14 +71,19 @@ class AuthService {
         return {'success': false, 'message': 'Rol inválido'};
       }
 
-      // Crear usuario en Supabase Auth con metadata personalizada
+      // Crear usuario en Supabase Auth
+      print('📝 Creando usuario con datos:');
+      print('   - Email: $email');
+      print('   - Rol: $role');
+      print('   - Nombre: ${nombre ?? email.split('@')[0]}');
+      print('   - Teléfono: $telefono');
+
       final authResponse = await _supabase.auth.signUp(
         email: email,
         password: password,
         data: {
           'rol': role,
           'nombre': nombre ?? email.split('@')[0],
-          'ubicacion': ubicacion,
           'telefono': telefono,
         },
       );
@@ -89,37 +93,30 @@ class AuthService {
       }
 
       final userId = authResponse.user!.id;
+      print('✅ Usuario creado con ID: $userId');
+
+      // Insertar datos en la tabla profiles (SIN ubicacion, lat, long)
+      print('📍 Guardando datos en tabla profiles...');
 
       try {
-        // El trigger en Supabase crea automáticamente el perfil
-        // Actualizar perfil con datos adicionales si es necesario
-        await _supabase
-            .from('profiles')
-            .update({
-              'nombre': nombre ?? email.split('@')[0],
-              'ubicacion': ubicacion,
-              'telefono': telefono,
-            })
-            .eq('id', userId);
-      } catch (e) {
-        print('Error al actualizar perfil: $e');
-        // No es crítico si falla la actualización
-      }
+        final profileData = {
+          'id': userId,
+          'email': email,
+          'rol': role,
+          'nombre': nombre ?? email.split('@')[0],
+          'telefono': telefono,
+        };
 
-      // Crear entrada en 'shelters' solo si es refugio
-      if (role == 'refugio') {
-        try {
-          await _supabase.from('shelters').insert({
-            'profile_id': userId,
-            'nombre': nombre ?? email.split('@')[0],
-            'email': email,
-            'telefono': telefono,
-            'direccion': ubicacion,
-          });
-        } catch (e) {
-          print('Advertencia: No se pudo crear entrada de refugio: $e');
-          // No fallar el registro por esto
-        }
+        print('   📤 Payload a insertar:');
+        profileData.forEach((key, value) {
+          print('      - $key: $value');
+        });
+
+        await _supabase.from('profiles').insert(profileData);
+
+        print('✅ Datos insertados correctamente en profiles');
+      } catch (insertError) {
+        print('❌ Error al insertar en profiles: $insertError');
       }
 
       return {
@@ -217,20 +214,21 @@ class AuthService {
       return false;
     }
   }
+
   /// Obtener perfil de usuario por ID
-static Future<Map<String, dynamic>?> getUserProfileById(String userId) async {
-  try {
-    final response = await _supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle(); // <- aquí
-    return response;
-  } catch (e) {
-    print('Error al obtener perfil de usuario $userId: $e');
-    return null;
+  static Future<Map<String, dynamic>?> getUserProfileById(String userId) async {
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle(); // <- aquí
+      return response;
+    } catch (e) {
+      print('Error al obtener perfil de usuario $userId: $e');
+      return null;
+    }
   }
-}
 
   /// Carga el usuario actual desde Supabase
   static Future<void> _loadCurrentUser() async {
@@ -347,6 +345,71 @@ static Future<Map<String, dynamic>?> getUserProfileById(String userId) async {
     } catch (e) {
       print('Error al actualizar perfil: $e');
       return false;
+    }
+  }
+
+  /// Actualizar ubicación de refugio (SOLO para refugios)
+  /// Actualiza: ubicacion (nombre del sector), lat (latitud), long (longitud)
+  static Future<Map<String, dynamic>> updateShelterLocation({
+    required String ubicacion,
+    required double lat,
+    required double long,
+  }) async {
+    try {
+      final userId = getCurrentUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Usuario no autenticado'};
+      }
+
+      // Verificar que es un refugio
+      final currentRole = _currentUser?.role ?? getUserRole();
+      if (currentRole != 'refugio') {
+        return {
+          'success': false,
+          'message': 'Solo refugios pueden actualizar ubicación',
+        };
+      }
+
+      // Validaciones
+      if (ubicacion.trim().isEmpty) {
+        return {'success': false, 'message': 'Ubicación no puede estar vacía'};
+      }
+
+      if (lat < -90 || lat > 90) {
+        return {
+          'success': false,
+          'message': 'Latitud inválida (debe estar entre -90 y 90)',
+        };
+      }
+
+      if (long < -180 || long > 180) {
+        return {
+          'success': false,
+          'message': 'Longitud inválida (debe estar entre -180 y 180)',
+        };
+      }
+
+      print('📍 Actualizando ubicación de refugio:');
+      print('   - ID: $userId');
+      print('   - Ubicación: $ubicacion');
+      print('   - Lat: $lat');
+      print('   - Long: $long');
+
+      await _supabase
+          .from('profiles')
+          .update({'ubicacion': ubicacion.trim(), 'lat': lat, 'long': long})
+          .eq('id', userId);
+
+      print('✅ Ubicación actualizada correctamente');
+
+      return {
+        'success': true,
+        'message': 'Ubicación actualizada correctamente',
+        'data': {'ubicacion': ubicacion, 'lat': lat, 'long': long},
+      };
+    } catch (e) {
+      print('❌ Error al actualizar ubicación: $e');
+      return {'success': false, 'message': 'Error al actualizar: $e'};
     }
   }
 

@@ -19,8 +19,7 @@ class _RegistroPageState extends State<RegistroPage> {
   final _passwordController = TextEditingController();
   final _passwordConfirmController = TextEditingController();
   final _telefonoController = TextEditingController();
-  final _ubicacionController = TextEditingController();
-  
+
   late String _selectedRole;
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -40,43 +39,77 @@ class _RegistroPageState extends State<RegistroPage> {
     _passwordController.dispose();
     _passwordConfirmController.dispose();
     _telefonoController.dispose();
-    _ubicacionController.dispose();
     super.dispose();
   }
 
-Future<void> _register() async {
-  setState(() {
-    _errorMessage = null;
-    _isLoading = true;
-  });
+  Future<void> _register() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  final result = await AuthService.register(
-    email: _emailController.text.trim(),
-    password: _passwordController.text,
-    confirmPassword: _passwordConfirmController.text,
-    role: _selectedRole,
-    nombre: _nombreController.text.trim(),
-    telefono: _telefonoController.text.trim().isEmpty ? null : _telefonoController.text.trim(),
-    ubicacion: _ubicacionController.text.trim().isEmpty ? null : _ubicacionController.text.trim(),
-  );
+    // Validar que refugios tengan teléfono
+    if (_selectedRole == 'refugio') {
+      if (_telefonoController.text.trim().isEmpty) {
+        setState(
+          () => _errorMessage = 'El teléfono es requerido para refugios',
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ El teléfono es requerido'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
 
-  if (!mounted) return;
-
-  setState(() => _isLoading = false);
-
-  if (result['success']) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(result['message']),
-        backgroundColor: Colors.green,
-      ),
+    print('═══════════════════════════════════════════');
+    print('📝 INICIANDO REGISTRO');
+    print('═══════════════════════════════════════════');
+    print('📧 Email: ${_emailController.text.trim()}');
+    print('👤 Nombre: ${_nombreController.text.trim()}');
+    print(
+      '📱 Teléfono: ${_telefonoController.text.trim().isEmpty ? "(vacío)" : _telefonoController.text.trim()}',
     );
-    Navigator.pushReplacementNamed(context, AppRoutes.login);
-  } else {
-    setState(() => _errorMessage = result['message']);
+    print('👥 Rol: $_selectedRole');
+    print('⚠️ Ubicación será agregada después del registro');
+    print('═══════════════════════════════════════════\n');
+
+    setState(() {
+      _errorMessage = null;
+      _isLoading = true;
+    });
+
+    final result = await AuthService.register(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      confirmPassword: _passwordConfirmController.text,
+      role: _selectedRole,
+      nombre: _nombreController.text.trim(),
+      telefono: _telefonoController.text.trim().isEmpty
+          ? null
+          : _telefonoController.text.trim(),
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    print('═══════════════════════════════════════════');
+    print('✅ RESPUESTA DEL REGISTRO:');
+    print(result);
+    print('═══════════════════════════════════════════\n');
+
+    if (result['success']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message']),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pushReplacementNamed(context, AppRoutes.login);
+    } else {
+      setState(() => _errorMessage = result['message']);
+    }
   }
-}
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -99,7 +132,7 @@ Future<void> _register() async {
             children: [
               // TÍTULO Y DESCRIPCIÓN
               Text(
-                _selectedRole == 'refugio' 
+                _selectedRole == 'refugio'
                     ? 'Registra tu Refugio'
                     : 'Crear Cuenta',
                 style: const TextStyle(
@@ -112,10 +145,7 @@ Future<void> _register() async {
                 _selectedRole == 'refugio'
                     ? 'Gestiona y publica mascotas en adopción'
                     : 'Regístrate para encontrar tu mascota',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
               ),
 
               const SizedBox(height: 30),
@@ -131,10 +161,11 @@ Future<void> _register() async {
                     width: 2,
                   ),
                   borderRadius: BorderRadius.circular(12),
-                  color: (_selectedRole == 'adoptante'
-                          ? AppColors.primaryOrange
-                          : AppColors.primaryTeal)
-                      .withOpacity(0.1),
+                  color:
+                      (_selectedRole == 'adoptante'
+                              ? AppColors.primaryOrange
+                              : AppColors.primaryTeal)
+                          .withOpacity(0.1),
                 ),
                 child: Row(
                   children: [
@@ -152,7 +183,9 @@ Future<void> _register() async {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _selectedRole == 'adoptante' ? 'Adoptante' : 'Refugio',
+                          _selectedRole == 'adoptante'
+                              ? 'Adoptante'
+                              : 'Refugio',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -177,8 +210,8 @@ Future<void> _register() async {
 
               // NOMBRE COMPLETO / NOMBRE DEL REFUGIO
               Text(
-                _selectedRole == 'refugio' 
-                    ? 'NOMBRE DEL REFUGIO *' 
+                _selectedRole == 'refugio'
+                    ? 'NOMBRE DEL REFUGIO *'
                     : 'NOMBRE COMPLETO *',
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
@@ -194,8 +227,8 @@ Future<void> _register() async {
                       ? 'Ej: Refugio Patitas Felices'
                       : 'Ej: Juan Pérez',
                   prefixIcon: Icon(
-                    _selectedRole == 'refugio' 
-                        ? Icons.business 
+                    _selectedRole == 'refugio'
+                        ? Icons.business
                         : Icons.person_outline,
                   ),
                   border: OutlineInputBorder(
@@ -225,10 +258,7 @@ Future<void> _register() async {
               // EMAIL
               const Text(
                 'EMAIL *',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
               ),
               const SizedBox(height: 8),
               TextFormField(
@@ -266,8 +296,8 @@ Future<void> _register() async {
 
               // TELÉFONO (OPCIONAL PARA ADOPTANTE, RECOMENDADO PARA REFUGIO)
               Text(
-                _selectedRole == 'refugio' 
-                    ? 'TELÉFONO *' 
+                _selectedRole == 'refugio'
+                    ? 'TELÉFONO *'
                     : 'TELÉFONO (OPCIONAL)',
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
@@ -289,50 +319,9 @@ Future<void> _register() async {
                   fillColor: Colors.grey.shade50,
                 ),
                 validator: (value) {
-                  if (_selectedRole == 'refugio' && 
+                  if (_selectedRole == 'refugio' &&
                       (value == null || value.trim().isEmpty)) {
                     return 'El teléfono es requerido para refugios';
-                  }
-                  return null;
-                },
-                onChanged: (value) {
-                  if (_errorMessage != null) {
-                    setState(() => _errorMessage = null);
-                  }
-                },
-              ),
-
-              const SizedBox(height: 20),
-
-              // UBICACIÓN (OPCIONAL PARA ADOPTANTE, RECOMENDADO PARA REFUGIO)
-              Text(
-                _selectedRole == 'refugio' 
-                    ? 'DIRECCIÓN *' 
-                    : 'CIUDAD (OPCIONAL)',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _ubicacionController,
-                enabled: !_isLoading,
-                decoration: InputDecoration(
-                  hintText: _selectedRole == 'refugio'
-                      ? 'Ej: Av. 6 de Diciembre N34-56, Quito'
-                      : 'Ej: Quito, Ecuador',
-                  prefixIcon: const Icon(Icons.location_on_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                ),
-                validator: (value) {
-                  if (_selectedRole == 'refugio' && 
-                      (value == null || value.trim().isEmpty)) {
-                    return 'La dirección es requerida para refugios';
                   }
                   return null;
                 },
@@ -348,10 +337,7 @@ Future<void> _register() async {
               // CONTRASEÑA
               const Text(
                 'CONTRASEÑA *',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
               ),
               const SizedBox(height: 8),
               TextFormField(
@@ -398,10 +384,7 @@ Future<void> _register() async {
               // CONFIRMAR CONTRASEÑA
               const Text(
                 'CONFIRMAR CONTRASEÑA *',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
               ),
               const SizedBox(height: 8),
               TextFormField(
@@ -551,4 +534,32 @@ Future<void> _register() async {
       ),
     );
   }
+}
+
+// Helpers para no repetir código de diseño
+Widget _buildLabel(String text) => Text(
+  text,
+  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+);
+
+Widget _buildTextField(
+  TextEditingController controller,
+  IconData icon,
+  String hint, {
+  bool isEmail = false,
+  bool isPhone = false,
+}) {
+  return TextFormField(
+    controller: controller,
+    keyboardType: isEmail
+        ? TextInputType.emailAddress
+        : (isPhone ? TextInputType.phone : TextInputType.text),
+    decoration: InputDecoration(
+      hintText: hint,
+      prefixIcon: Icon(icon),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+      filled: true,
+      fillColor: Colors.grey.shade50,
+    ),
+  );
 }

@@ -14,6 +14,7 @@ import '../map/map_page.dart';
 import '../adoption_requests/adoption_requests_page.dart';
 import '../pet_detail/pet_detail_page.dart';
 import '../shelter_admin/shelter_adoption_requests_page.dart';
+import '../profile/refugio_profile_page.dart';
 
 class AppRoutes {
   // nombres de rutas
@@ -30,6 +31,7 @@ class AppRoutes {
   static const requests = '/requests';
   static const petDetail = '/pet-detail';
   static const shelterRequests = '/shelter-requests';
+  static const refugioProfile = '/refugio-profile';
 
   static Map<String, WidgetBuilder> routes = {
     login: (_) => const LoginPage(),
@@ -47,6 +49,7 @@ class AppRoutes {
     map: (_) => const MapPage(),
     requests: (_) => const AdoptionRequestsPage(),
     shelterRequests: (_) => const ShelterAdoptionRequestsPage(),
+    refugioProfile: (_) => const RefugioProfilePage(),
     petDetail: (context) {
       final pet = ModalRoute.of(context)?.settings.arguments as PetModel?;
       return PetDetailPage(pet: pet ?? PetModel.empty());
