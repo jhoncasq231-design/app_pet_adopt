@@ -6,6 +6,7 @@ import 'presentation/routes/app_routes.dart';
 import 'presentation/login/login_page.dart';
 import 'presentation/home/home_container_adoptant_page.dart';
 import 'presentation/shelter_admin/home_container_shelter_page.dart';
+import 'presentation/login/role_selection_google_page.dart'; // Asegúrate de crear este page
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,7 +15,6 @@ Future<void> main() async {
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
-    // Si no existe .env, intentar con .env-example
     await dotenv.load(fileName: ".env-example");
   }
 
@@ -53,60 +53,74 @@ class _InitialRoutePage extends StatefulWidget {
 }
 
 class _InitialRoutePageState extends State<_InitialRoutePage> {
+  final supabase = Supabase.instance.client;
+
   @override
   void initState() {
     super.initState();
+    _subscribeAuthChanges();
     _checkAuthState();
   }
 
+  // Escucha cambios de sesión para manejar OAuth Web
+  void _subscribeAuthChanges() {
+    supabase.auth.onAuthStateChange.listen((event) async {
+      final session = event.session;
+      if (session == null) return;
+
+      final userId = session.user.id;
+
+      final profile = await supabase
+          .from('profiles')
+          .select('rol')
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (!mounted) return;
+
+      if (profile == null) {
+        Navigator.of(context).pushReplacementNamed('/select-role');
+      } else {
+        final userRole = profile['rol'];
+        if (userRole == 'adoptante') {
+          Navigator.of(context).pushReplacementNamed('/home-adoptant');
+        } else {
+          Navigator.of(context).pushReplacementNamed('/home-shelter');
+        }
+      }
+    });
+  }
+
+  // Verifica sesión al inicio
   Future<void> _checkAuthState() async {
-    // Esperar un frame para asegurar que el widget está montado
     await Future.delayed(const Duration(milliseconds: 100));
     if (!mounted) return;
 
-    final supabase = Supabase.instance.client;
+    final session = supabase.auth.currentSession;
 
-    try {
-      final session = supabase.auth.currentSession;
+    if (session != null) {
+      final userId = session.user.id;
 
-      if (session != null) {
-        final userId = session.user.id;
+      final profile = await supabase
+          .from('profiles')
+          .select('rol')
+          .eq('id', userId)
+          .maybeSingle();
 
-        try {
-          final response = await supabase
-              .from('profiles')
-              .select('rol')
-              .eq('id', userId)
-              .single();
+      if (!mounted) return;
 
-          final userRole = response['rol'];
-
-          if (!mounted) return;
-
-          if (userRole == 'adoptante') {
-            Navigator.of(context).pushReplacementNamed('/home-adoptant');
-          } else if (userRole == 'refugio') {
-            Navigator.of(context).pushReplacementNamed('/home-shelter');
-          } else {
-            Navigator.of(context).pushReplacementNamed('/login');
-          }
-        } catch (e) {
-          print('Error obteniendo rol del usuario: $e');
-          if (mounted) {
-            Navigator.of(context).pushReplacementNamed('/login');
-          }
-        }
+      if (profile == null) {
+        Navigator.of(context).pushReplacementNamed('/select-role');
       } else {
-        // Sin sesión, ir a login
-        if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/login');
+        final userRole = profile['rol'];
+        if (userRole == 'adoptante') {
+          Navigator.of(context).pushReplacementNamed('/home-adoptant');
+        } else {
+          Navigator.of(context).pushReplacementNamed('/home-shelter');
         }
       }
-    } catch (e) {
-      print('Error verificando autenticación: $e');
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
-      }
+    } else {
+      Navigator.of(context).pushReplacementNamed('/login');
     }
   }
 

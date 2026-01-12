@@ -52,7 +52,7 @@ dependencies:
   geolocator: ^10.1.0
   geocoding: ^2.1.1
   # OAuth con Google
-  google_sign_in: ^6.1.6
+  
   
 
 

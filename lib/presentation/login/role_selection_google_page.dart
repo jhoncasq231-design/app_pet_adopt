@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/colors.dart';
 import '../../data/services/google_auth_service.dart';
-import '../../presentation/routes/app_routes.dart';
 
 class RoleSelectionGooglePage extends StatefulWidget {
   const RoleSelectionGooglePage({super.key});
@@ -13,29 +12,21 @@ class RoleSelectionGooglePage extends StatefulWidget {
 
 class _RoleSelectionGooglePageState extends State<RoleSelectionGooglePage> {
   bool _isLoading = false;
-  String? _error;
 
   Future<void> _signInWithGoogle(String rol) async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+    setState(() => _isLoading = true);
 
-    final result = await GoogleAuthService.signInWithGoogle(rol: rol);
-
-    if (!mounted) return;
-
-    if (result['success']) {
-      if (rol == 'adoptante') {
-        Navigator.pushReplacementNamed(context, AppRoutes.homeAdoptant);
-      } else {
-        Navigator.pushReplacementNamed(context, AppRoutes.homeShelter);
-      }
-    } else {
-      setState(() {
-        _error = result['message'];
-        _isLoading = false;
-      });
+    try {
+      // Inicia el flujo OAuth Web de Supabase
+      await GoogleAuthService.signInWithGoogle(rol: rol);
+      // La redirección y navegación se maneja en onAuthStateChange del main.dart
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al iniciar sesión: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -58,7 +49,6 @@ class _RoleSelectionGooglePageState extends State<RoleSelectionGooglePage> {
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 30),
-
             _RoleCard(
               title: 'Adoptante',
               description: 'Buscar y adoptar mascotas',
@@ -66,9 +56,7 @@ class _RoleSelectionGooglePageState extends State<RoleSelectionGooglePage> {
               color: AppColors.primaryOrange,
               onTap: _isLoading ? null : () => _signInWithGoogle('adoptante'),
             ),
-
             const SizedBox(height: 20),
-
             _RoleCard(
               title: 'Refugio',
               description: 'Gestionar mascotas y adopciones',
@@ -76,19 +64,9 @@ class _RoleSelectionGooglePageState extends State<RoleSelectionGooglePage> {
               color: AppColors.primaryTeal,
               onTap: _isLoading ? null : () => _signInWithGoogle('refugio'),
             ),
-
             if (_isLoading) ...[
               const SizedBox(height: 30),
               const Center(child: CircularProgressIndicator()),
-            ],
-
-            if (_error != null) ...[
-              const SizedBox(height: 20),
-              Text(
-                _error!,
-                style: const TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
-              ),
             ],
           ],
         ),
