@@ -52,7 +52,7 @@ dependencies:
   geolocator: ^10.1.0
   geocoding: ^2.1.1
   # OAuth con Google
-  
+  dartz: ^0.10.1
   
 
 

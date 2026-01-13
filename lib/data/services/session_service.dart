@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../data/services/auth_service.dart';
+import 'auth_service.dart';
 
 // Servicio de sesión (mock sin SharedPreferences por ahora)
 class SessionService {

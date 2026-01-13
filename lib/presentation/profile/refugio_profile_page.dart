@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../services/session_service.dart';
+import '../../data/services/session_service.dart';
 import '../../data/services/auth_service.dart';
 import '../../core/colors.dart';
 import '../routes/app_routes.dart';
